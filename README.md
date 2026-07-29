@@ -4,10 +4,11 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 
 ## Setup
 
-1. Create a MySQL database named `servicebook` or update `src/config.php` with your database name.
-2. Configure database credentials in `src/config.php`.
-3. Run `install.php` in your browser or from CLI once to create tables and the initial administrator account.
-4. Visit `public/login.php` and sign in with:
+1. Open `install.php` in your browser.
+2. Enter SQL server address, database name/login credentials, and initial site title.
+3. Review the installer summary and explicitly confirm before setup runs.
+4. The installer detects existing installations and lets you either continue to login or rerun setup to verify/update configuration.
+5. Visit `public/login.php` and sign in with:
    - Username: `admin`
    - Temporary password shown by the installer after first setup.
 
@@ -22,6 +23,7 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - Main call list supports quick filters for Completed Today and Completed This Week.
 - Edit call view shows Last Modified timestamp and actor.
 - Administration includes an Activity Log page for recent service call changes.
+- Administrators can upload or remove a title image logo in System Settings; when present, the logo replaces the text site title.
 - Job numbers are generated sequentially and cannot be edited.
 - The main page shows open calls by default.
 - The application uses prepared statements and password hashing.

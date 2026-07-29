@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/AppSettings.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
@@ -10,6 +11,10 @@ $user = Auth::currentUser();
 $technicians = Technician::findAllActive();
 $statuses = ServiceCall::getStatusOptions();
 $priorities = ServiceCall::getPriorityOptions();
+$defaultPriority = AppSettings::get('default_priority');
+if (!in_array($defaultPriority, $priorities, true)) {
+    $defaultPriority = 'Normal';
+}
 
 $errors = [];
 $values = [
@@ -24,7 +29,7 @@ $values = [
     'internal_notes' => '',
     'assigned_tech' => '',
     'status' => 'New',
-    'priority' => 'Normal',
+    'priority' => $defaultPriority,
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
