@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stats = ServiceCall::getTechnicianDashboardStats($technicianId);
 $activeJobs = ServiceCall::findActiveByTechnician($technicianId);
 $claimableJobs = $technicianId > 0 ? ServiceCall::findClaimableOpenJobs() : [];
+$workload = ServiceCall::getTechnicianWorkloadSummary();
 
 Template::render('pages/technician_dashboard', [
     'title' => 'My Jobs',
@@ -78,4 +79,5 @@ Template::render('pages/technician_dashboard', [
     'errors' => $errors,
     'successMessage' => $successMessage,
     'technicianLinked' => $technicianId > 0,
+    'workload' => $workload,
 ], 'layouts/app');

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Template.php';
 
 Auth::requireAdmin();
@@ -53,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             try {
+                $wasNewTechnician = $id === null;
+                $beforeName = $existing['name'] ?? null;
+                $savedTechnicianId = $id;
                 if ($id === null) {
                     $stmt = $pdo->prepare(
                         'INSERT INTO technicians (name, phone, active, created_at) VALUES (:name, :phone, :active, NOW())'
@@ -62,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':phone' => $values['phone'] !== '' ? $values['phone'] : null,
                         ':active' => $values['active'],
                     ]);
+                    $savedTechnicianId = (int)$pdo->lastInsertId();
                 } else {
                     $stmt = $pdo->prepare(
                         'UPDATE technicians SET name = :name, phone = :phone, active = :active WHERE id = :id'
@@ -76,8 +81,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 Logger::info('Admin saved technician record', [
                     'admin_user_id' => $user['id'] ?? null,
-                    'technician_id' => $id,
+                    'technician_id' => $savedTechnicianId,
                 ]);
+                ServiceCall::logSystemEvent(
+                    $user,
+                    'technician_record',
+                    $beforeName,
+                    $values['name'],
+                    $wasNewTechnician
+                        ? 'Technician created (ID ' . $savedTechnicianId . ')'
+                        : 'Technician updated (ID ' . $savedTechnicianId . ')'
+                );
                 header('Location: ' . url('admin/technicians.php'));
                 exit;
             } catch (Throwable $exception) {

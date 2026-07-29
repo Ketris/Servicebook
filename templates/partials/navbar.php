@@ -28,6 +28,7 @@ $app_logo_url = $app_logo_url ?? '';
                         <ul class="dropdown-menu" aria-labelledby="adminMenu">
                             <li><a class="dropdown-item" href="<?= url('admin/index.php') ?>">Dashboard</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/activity.php') ?>">Activity Log</a></li>
+                            <li><a class="dropdown-item" href="<?= url('admin/records.php') ?>">Record Management</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/users.php') ?>">Users</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/technicians.php') ?>">Technicians</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/settings.php') ?>">Settings</a></li>

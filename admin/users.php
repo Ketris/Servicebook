@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/User.php';
+require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Template.php';
 require_once __DIR__ . '/../src/Logger.php';
 
@@ -30,6 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'admin_user_id' => $user['id'] ?? null,
                 'target_user_id' => $targetUserId,
             ]);
+            ServiceCall::logSystemEvent(
+                $user,
+                'user_lockout',
+                'locked',
+                'unlocked',
+                'Admin cleared lock for user ID ' . $targetUserId
+            );
         } else {
             $_SESSION['admin_users_error'] = 'Unable to clear lock for that user.';
         }
@@ -45,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'admin_user_id' => $user['id'] ?? null,
                 'target_user_id' => $targetUserId,
             ]);
+            ServiceCall::logSystemEvent(
+                $user,
+                'user_password',
+                null,
+                'reset',
+                'Admin reset password for user ID ' . $targetUserId
+            );
         }
     } else {
         $_SESSION['admin_users_error'] = 'Unknown action requested.';

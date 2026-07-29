@@ -3,6 +3,7 @@ require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/AppSettings.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Template.php';
 
 Auth::requireAdmin();
@@ -11,7 +12,7 @@ $user = Auth::currentUser();
 $pdo = Database::getConnection();
 $errors = [];
 $settings = AppSettings::all();
-$priorityOptions = AppSettings::priorityOptions();
+$originalSettings = $settings;
 $projectRoot = dirname(__DIR__);
 $logoDirectoryAbsolute = $projectRoot . '/public/assets/branding';
 $logoDirectoryRelative = 'public/assets/branding';
@@ -43,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['form'] = 'Your session expired. Please reload and try again.';
     } else {
         $settings['site_title'] = trim($_POST['site_title'] ?? '');
-        $settings['default_priority'] = trim($_POST['default_priority'] ?? 'Normal');
         $existingLogoPath = (string)($settings['site_logo_path'] ?? '');
         $removeLogo = isset($_POST['remove_logo']) && $_POST['remove_logo'] === '1';
         $uploadError = $_FILES['site_logo']['error'] ?? UPLOAD_ERR_NO_FILE;
@@ -51,10 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($settings['site_title'] === '') {
             $errors['site_title'] = 'Site title cannot be empty.';
-        }
-
-        if (!in_array($settings['default_priority'], $priorityOptions, true)) {
-            $errors['default_priority'] = 'Invalid default priority.';
         }
 
         if ($hasUploadedLogo) {
@@ -159,6 +155,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Logger::info('Admin updated system settings', [
                     'admin_user_id' => $user['id'] ?? null,
                 ]);
+                ServiceCall::logSystemEvent(
+                    $user,
+                    'system_settings',
+                    $originalSettings['site_title'] ?? null,
+                    $settings['site_title'] ?? null,
+                    'System settings updated' . (($originalSettings['site_logo_path'] ?? '') !== ($settings['site_logo_path'] ?? '') ? ' (logo changed)' : '')
+                );
                 header('Location: ' . url('admin/settings.php') . '?updated=1');
                 exit;
             } catch (Throwable $exception) {
@@ -191,6 +194,5 @@ Template::render('pages/admin_settings', [
     'title' => 'System Settings',
     'user' => $user,
     'settings' => $settings,
-    'priority_options' => $priorityOptions,
     'errors' => $errors,
 ], 'layouts/app');

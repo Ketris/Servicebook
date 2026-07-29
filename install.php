@@ -237,8 +237,7 @@ CREATE TABLE IF NOT EXISTS service_calls (
     reported_issue TEXT NOT NULL,
     internal_notes TEXT DEFAULT NULL,
     assigned_tech INT UNSIGNED DEFAULT NULL,
-    status ENUM('New','Dispatched','In Progress','Waiting Parts','On Hold','Complete') NOT NULL DEFAULT 'New',
-    priority ENUM('Low','Normal','High','Emergency') NOT NULL DEFAULT 'Normal',
+    status ENUM('New','Dispatched','In Progress','Waiting Parts','On Hold','Complete','Cancelled') NOT NULL DEFAULT 'New',
     created_by INT UNSIGNED DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -249,7 +248,7 @@ CREATE TABLE IF NOT EXISTS service_calls (
 
 CREATE TABLE IF NOT EXISTS service_call_history (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    service_call_id INT UNSIGNED NOT NULL,
+    service_call_id INT UNSIGNED DEFAULT NULL,
     changed_by_user_id INT UNSIGNED DEFAULT NULL,
     changed_by_name VARCHAR(150) DEFAULT NULL,
     field_name VARCHAR(100) NOT NULL,
@@ -259,6 +258,55 @@ CREATE TABLE IF NOT EXISTS service_call_history (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX (service_call_id),
     INDEX (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS customer_records (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_key VARCHAR(255) NOT NULL UNIQUE,
+    customer_name VARCHAR(255) NOT NULL,
+    default_contact VARCHAR(150) DEFAULT NULL,
+    default_phone VARCHAR(100) DEFAULT NULL,
+    default_email VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX (customer_name),
+    INDEX (last_used_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS location_records (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    location_key VARCHAR(255) NOT NULL UNIQUE,
+    location_name VARCHAR(255) NOT NULL,
+    customer_record_id INT UNSIGNED DEFAULT NULL,
+    default_contact VARCHAR(150) DEFAULT NULL,
+    default_phone VARCHAR(100) DEFAULT NULL,
+    default_email VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_used_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX (location_name),
+    INDEX (customer_record_id),
+    INDEX (last_used_at),
+    FOREIGN KEY (customer_record_id) REFERENCES customer_records(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS saved_views (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    view_name VARCHAR(100) NOT NULL,
+    page_context VARCHAR(50) NOT NULL,
+    search_term VARCHAR(120) DEFAULT NULL,
+    filter_value VARCHAR(60) DEFAULT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,
+    role_scope ENUM('Administrator','Office Staff','Technician') DEFAULT NULL,
+    is_default TINYINT(1) NOT NULL DEFAULT 0,
+    created_by INT UNSIGNED DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX (page_context),
+    INDEX (user_id),
+    INDEX (role_scope),
+    INDEX (is_default)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 SQL
         );
@@ -271,11 +319,6 @@ SQL
             ':name' => 'site_title',
             ':insert_value' => $setup['site_title'],
             ':update_value' => $setup['site_title'],
-        ]);
-        $siteTitleStmt->execute([
-            ':name' => 'default_priority',
-            ':insert_value' => 'Normal',
-            ':update_value' => 'Normal',
         ]);
         $siteTitleStmt->execute([
             ':name' => 'site_logo_path',

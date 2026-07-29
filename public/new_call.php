@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
-require_once __DIR__ . '/../src/AppSettings.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/ReusableRecord.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
@@ -9,12 +9,8 @@ require_once __DIR__ . '/../src/Template.php';
 Auth::requireLogin();
 $user = Auth::currentUser();
 $technicians = Technician::findAllActive();
+$recordSuggestions = ReusableRecord::getFormData();
 $statuses = ServiceCall::getStatusOptions();
-$priorities = ServiceCall::getPriorityOptions();
-$defaultPriority = AppSettings::get('default_priority');
-if (!in_array($defaultPriority, $priorities, true)) {
-    $defaultPriority = 'Normal';
-}
 
 $errors = [];
 $values = [
@@ -29,7 +25,6 @@ $values = [
     'internal_notes' => '',
     'assigned_tech' => '',
     'status' => 'New',
-    'priority' => $defaultPriority,
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,9 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($values['status'], $statuses, true)) {
             $errors['status'] = 'Invalid status selected.';
         }
-        if (!in_array($values['priority'], $priorities, true)) {
-            $errors['priority'] = 'Invalid priority selected.';
-        }
 
         if (empty($errors)) {
             $data = $values;
@@ -110,7 +102,7 @@ Template::render('pages/new_call', [
     'user' => $user,
     'technicians' => $technicians,
     'statuses' => $statuses,
-    'priorities' => $priorities,
     'errors' => $errors,
     'values' => $values,
+    'recordSuggestions' => $recordSuggestions,
 ], 'layouts/app');

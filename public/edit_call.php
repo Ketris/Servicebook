@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/ReusableRecord.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
@@ -8,8 +9,8 @@ require_once __DIR__ . '/../src/Template.php';
 Auth::requireLogin();
 $user = Auth::currentUser();
 $technicians = Technician::findAllActive();
+$recordSuggestions = ReusableRecord::getFormData();
 $statuses = ServiceCall::getStatusOptions();
-$priorities = ServiceCall::getPriorityOptions();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $call = ServiceCall::findById($id);
@@ -20,7 +21,10 @@ if (!$call) {
 
 $isTechnician = ($user['role'] ?? '') === 'Technician';
 $canManage = !$isTechnician || ((int)($call['assigned_tech'] ?? 0) === (int)($user['technician_id'] ?? 0));
-$canSelfAssign = $isTechnician && !empty($user['technician_id']) && empty($call['assigned_tech']) && $call['status'] !== 'Complete';
+$canSelfAssign = $isTechnician
+    && !empty($user['technician_id'])
+    && empty($call['assigned_tech'])
+    && !in_array((string)$call['status'], ['Complete', 'Cancelled'], true);
 $canEditDetails = !$isTechnician || $canManage || $canSelfAssign;
 
 $errors = [];
@@ -36,7 +40,6 @@ $values = [
     'internal_notes' => $call['internal_notes'],
     'assigned_tech' => $call['assigned_tech'],
     'status' => $call['status'],
-    'priority' => $call['priority'],
     'technician_note' => '',
 ];
 $history = ServiceCall::findHistory($id);
@@ -147,9 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!in_array($values['status'], $statuses, true)) {
                 $errors['status'] = 'Invalid status selected.';
             }
-            if (!in_array($values['priority'], $priorities, true)) {
-                $errors['priority'] = 'Invalid priority selected.';
-            }
 
             if (empty($errors)) {
                 $data = $values;
@@ -185,7 +185,6 @@ Template::render('pages/edit_call', [
     'call' => $call,
     'technicians' => $technicians,
     'statuses' => $statuses,
-    'priorities' => $priorities,
     'errors' => $errors,
     'values' => $values,
     'history' => $history,
@@ -196,4 +195,5 @@ Template::render('pages/edit_call', [
     'canSelfAssign' => $canSelfAssign,
     'canEditDetails' => $canEditDetails,
     'backUrl' => $isTechnician ? url('public/technician_dashboard.php') : url('public/index.php'),
+    'recordSuggestions' => $recordSuggestions,
 ], 'layouts/app');

@@ -4,6 +4,18 @@
         <p class="text-muted mb-0">A technician-focused view of the work currently assigned to you, with quick updates and optional claim actions.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
+        <?php
+        $techCsvUrl = url('public/data_view.php?' . http_build_query([
+            'source' => 'technician',
+            'format' => 'csv',
+        ]));
+        $techPrintUrl = url('public/data_view.php?' . http_build_query([
+            'source' => 'technician',
+            'format' => 'print',
+        ]));
+        ?>
+        <a class="btn btn-outline-secondary" href="<?= escape($techCsvUrl) ?>">Export CSV</a>
+        <a class="btn btn-outline-secondary" target="_blank" rel="noopener" href="<?= escape($techPrintUrl) ?>">Print View</a>
         <a class="btn btn-outline-secondary" href="<?= url('public/index.php') ?>">View All Calls</a>
         <a class="btn btn-primary" href="<?= url('public/new_call.php') ?>">New Call</a>
     </div>
@@ -49,7 +61,7 @@
     <div class="col-6 col-xl-3">
         <div class="card stat-card h-100">
             <div class="card-body">
-                <div class="small text-muted">Completed Today</div>
+                <div class="small text-muted">Closed Today</div>
                 <div class="stat-value"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
             </div>
         </div>
@@ -85,7 +97,6 @@
                                 </div>
                                 <div class="job-card-meta">
                                     <span class="badge rounded-pill <?= status_badge_class((string)$job['status']) ?>"><?= escape($job['status']) ?></span>
-                                    <span class="badge rounded-pill <?= priority_badge_class((string)$job['priority']) ?>"><?= escape($job['priority']) ?></span>
                                 </div>
                             </div>
 
@@ -157,6 +168,44 @@
     </div>
 
     <div class="col-12 col-xxl-4">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white">
+                <h2 class="h6 mb-0">Team Availability</h2>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Technician</th>
+                            <th>Open</th>
+                            <th>In Progress</th>
+                            <th>Load</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($workload as $worker): ?>
+                            <tr>
+                                <td><?= escape($worker['name']) ?></td>
+                                <td><?= escape((string)($worker['open_jobs'] ?? 0)) ?></td>
+                                <td><?= escape((string)($worker['in_progress_jobs'] ?? 0)) ?></td>
+                                <td>
+                                    <?php
+                                    $availability = (string)($worker['availability'] ?? 'Normal Load');
+                                    $availabilityClass = $availability === 'Heavy Load'
+                                        ? 'text-bg-warning'
+                                        : ($availability === 'Available' ? 'text-bg-success' : 'text-bg-primary');
+                                    ?>
+                                    <span class="badge <?= $availabilityClass ?>"><?= escape($availability) ?></span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
             <div>
                 <h2 class="h5 mb-1">Unassigned Open Jobs</h2>
@@ -182,7 +231,6 @@
                                     <h3 class="h6 mb-1"><?= escape($job['customer']) ?></h3>
                                     <div class="text-muted small"><?= escape($job['location']) ?></div>
                                 </div>
-                                <span class="badge rounded-pill <?= priority_badge_class((string)$job['priority']) ?>"><?= escape($job['priority']) ?></span>
                             </div>
                             <div class="small text-muted mb-2">Received <?= escape(date('Y-m-d H:i', strtotime($job['received_date']))) ?></div>
                             <div class="truncate-3 mb-3"><?= nl2br(escape($job['reported_issue'])) ?></div>

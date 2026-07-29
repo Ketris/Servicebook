@@ -1,3 +1,9 @@
+<?php
+$customerNames = $recordSuggestions['customer_names'] ?? [];
+$locationNames = $recordSuggestions['location_names'] ?? [];
+$customerProfiles = $recordSuggestions['customer_profiles'] ?? [];
+$locationProfiles = $recordSuggestions['location_profiles'] ?? [];
+?>
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -25,14 +31,14 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="customer">Customer Name</label>
-                    <input id="customer" name="customer" class="form-control" type="text" value="<?= escape($values['customer']) ?>" required autofocus maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <input id="customer" name="customer" class="form-control" type="text" value="<?= escape($values['customer']) ?>" required autofocus maxlength="255" list="customer-options" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['customer'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['customer']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="location">Location</label>
-                    <input id="location" name="location" class="form-control" type="text" value="<?= escape($values['location']) ?>" required maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <input id="location" name="location" class="form-control" type="text" value="<?= escape($values['location']) ?>" required maxlength="255" list="location-options" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['location'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['location']) ?></div>
                     <?php endif; ?>
@@ -55,14 +61,6 @@
                     <select id="status" name="status" class="form-select" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                         <?php foreach ($statuses as $status): ?>
                             <option value="<?= escape($status) ?>" <?= $status === $values['status'] ? 'selected' : '' ?>><?= escape($status) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="priority">Priority</label>
-                    <select id="priority" name="priority" class="form-select" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
-                        <?php foreach ($priorities as $priority): ?>
-                            <option value="<?= escape($priority) ?>" <?= $priority === $values['priority'] ? 'selected' : '' ?>><?= escape($priority) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -118,6 +116,17 @@
             </div>
         </form>
 
+        <datalist id="customer-options">
+            <?php foreach ($customerNames as $customerName): ?>
+                <option value="<?= escape((string)$customerName) ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
+        <datalist id="location-options">
+            <?php foreach ($locationNames as $locationName): ?>
+                <option value="<?= escape((string)$locationName) ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
+
         <?php if (!empty($history)): ?>
             <div class="card border-0 shadow-sm mt-4">
                 <div class="card-header bg-white">
@@ -145,3 +154,63 @@
         <?php endif; ?>
     </div>
 </div>
+<script>
+(function () {
+    const customerInput = document.getElementById('customer');
+    const locationInput = document.getElementById('location');
+    const contactInput = document.getElementById('contact');
+    const phoneInput = document.getElementById('phone');
+    const emailInput = document.getElementById('email');
+
+    if (!customerInput || !locationInput || !contactInput || !phoneInput || !emailInput) {
+        return;
+    }
+
+    if (customerInput.disabled || locationInput.disabled) {
+        return;
+    }
+
+    const customerProfiles = <?= json_encode($customerProfiles, JSON_UNESCAPED_SLASHES) ?>;
+    const locationProfiles = <?= json_encode($locationProfiles, JSON_UNESCAPED_SLASHES) ?>;
+
+    function keyFor(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function fillIfEmpty(input, value) {
+        if (!input || input.value.trim() !== '' || !value) {
+            return;
+        }
+        input.value = value;
+    }
+
+    function applyCustomerProfile() {
+        const profile = customerProfiles[keyFor(customerInput.value)] || null;
+        if (!profile) {
+            return;
+        }
+
+        fillIfEmpty(contactInput, profile.contact || '');
+        fillIfEmpty(phoneInput, profile.phone || '');
+        fillIfEmpty(emailInput, profile.email || '');
+        fillIfEmpty(locationInput, profile.location || '');
+    }
+
+    function applyLocationProfile() {
+        const profile = locationProfiles[keyFor(locationInput.value)] || null;
+        if (!profile) {
+            return;
+        }
+
+        fillIfEmpty(customerInput, profile.customer || '');
+        fillIfEmpty(contactInput, profile.contact || '');
+        fillIfEmpty(phoneInput, profile.phone || '');
+        fillIfEmpty(emailInput, profile.email || '');
+    }
+
+    customerInput.addEventListener('change', applyCustomerProfile);
+    customerInput.addEventListener('blur', applyCustomerProfile);
+    locationInput.addEventListener('change', applyLocationProfile);
+    locationInput.addEventListener('blur', applyLocationProfile);
+})();
+</script>
