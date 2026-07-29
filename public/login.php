@@ -9,12 +9,14 @@ $username = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    if (Auth::login($username, $password)) {
+    if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
+        $error = 'Your session expired. Please try again.';
+    } elseif (Auth::login($username, $password)) {
         header('Location: ' . url('public/index.php'));
         exit;
+    } else {
+        $error = Auth::lastError();
     }
-
-    $error = 'Invalid username or password.';
 }
 
 Template::render('pages/login', [

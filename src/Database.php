@@ -63,5 +63,15 @@ SQL
                 $pdo->exec("ALTER TABLE users MODIFY role ENUM('Administrator','Office Staff','Technician') NOT NULL DEFAULT 'Office Staff'");
             }
         }
+
+        $failedAttemptColumns = $pdo->query("SHOW COLUMNS FROM users LIKE 'failed_login_attempts'")->fetchAll();
+        if (empty($failedAttemptColumns)) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0 AFTER active');
+        }
+
+        $lockUntilColumns = $pdo->query("SHOW COLUMNS FROM users LIKE 'lock_until'")->fetchAll();
+        if (empty($lockUntilColumns)) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN lock_until DATETIME DEFAULT NULL AFTER failed_login_attempts');
+        }
     }
 }

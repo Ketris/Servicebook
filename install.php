@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     display_name VARCHAR(150) NOT NULL,
     role ENUM('Administrator', 'Office Staff') NOT NULL DEFAULT 'Office Staff',
     active TINYINT(1) NOT NULL DEFAULT 1,
+    failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    lock_until DATETIME DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -71,7 +73,7 @@ SQL
     );
 
     $username = 'admin';
-    $password = 'admin123';
+    $password = bin2hex(random_bytes(8));
     $displayName = 'Administrator';
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
@@ -94,7 +96,12 @@ SQL
 
     echo '<h1>Installation Completed</h1>';
     echo '<p>The database has been created and the initial administrator account is ready.</p>';
-    echo '<p><strong>Login</strong>: admin<br><strong>Password</strong>: admin123</p>';
+    if (!$exists) {
+        echo '<p><strong>Login</strong>: admin<br><strong>Temporary Password</strong>: ' . htmlspecialchars($password, ENT_QUOTES, 'UTF-8') . '</p>';
+        echo '<p>Please sign in and change this password immediately.</p>';
+    } else {
+        echo '<p>The admin account already exists. Use your existing credentials.</p>';
+    }
     echo '<p><a href="public/login.php">Go to login</a></p>';
 } catch (PDOException $exception) {
     echo '<h1>Installation Failed</h1>';

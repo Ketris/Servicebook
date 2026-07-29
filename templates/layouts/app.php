@@ -2,6 +2,8 @@
 /** @var string $title */
 /** @var string $__content */
 /** @var array|null $user */
+
+apply_security_headers();
 ?>
 <!doctype html>
 <html lang="en">

@@ -43,3 +43,54 @@ if (!function_exists('url')) {
         return $base === '' ? '/' . $path : $base . '/' . $path;
     }
 }
+
+if (!function_exists('csrf_token')) {
+    function csrf_token(): string
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['_csrf_token'])) {
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['_csrf_token'];
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="_csrf_token" value="' . escape(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('csrf_validate')) {
+    function csrf_validate(?string $token): bool
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['_csrf_token']) || !is_string($token)) {
+            return false;
+        }
+
+        return hash_equals($_SESSION['_csrf_token'], $token);
+    }
+}
+
+if (!function_exists('apply_security_headers')) {
+    function apply_security_headers(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('X-Frame-Options: DENY');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    }
+}

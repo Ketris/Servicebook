@@ -6,14 +6,14 @@ class User
     public static function findAll(): array
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->query('SELECT id, username, display_name, role, technician_id, active, created_at FROM users ORDER BY username');
+        $stmt = $pdo->query('SELECT id, username, display_name, role, technician_id, active, failed_login_attempts, lock_until, created_at FROM users ORDER BY username');
         return $stmt->fetchAll();
     }
 
     public static function findById(int $id): array|null
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active FROM users WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active, failed_login_attempts, lock_until FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -76,5 +76,37 @@ class User
         }
         $stmt->execute($params);
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public static function clearLockout(int $id): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public static function resetPassword(int $id): ?string
+    {
+        $user = self::findById($id);
+        if (!$user) {
+            return null;
+        }
+
+        $temporaryPassword = bin2hex(random_bytes(6));
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            'UPDATE users
+             SET password_hash = :password_hash,
+                 failed_login_attempts = 0,
+                 lock_until = NULL
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            ':password_hash' => password_hash($temporaryPassword, PASSWORD_DEFAULT),
+            ':id' => $id,
+        ]);
+
+        return $temporaryPassword;
     }
 }

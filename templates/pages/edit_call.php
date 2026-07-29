@@ -4,37 +4,46 @@
             <div>
                 <h1 class="h3">Edit Service Call</h1>
                 <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(date('Y-m-d H:i', strtotime($call['created_at']))) ?></p>
+                <p class="text-muted mb-0">Last Modified <?= escape(date('Y-m-d H:i', strtotime($lastModifiedAt))) ?> by <?= escape((string)$lastModifiedBy) ?></p>
             </div>
             <a class="btn btn-secondary" href="<?= url('public/index.php') ?>">Back</a>
         </div>
-        <?php if ($isTechnician && $canManage): ?>
+        <?php if (!empty($errors['claim_job'])): ?>
+            <div class="alert alert-danger"><?= escape($errors['claim_job']) ?></div>
+        <?php elseif ($isTechnician && $canSelfAssign): ?>
+            <div class="alert alert-info">This open job is still unassigned. You can claim it for yourself below.</div>
+        <?php elseif ($isTechnician && $canManage): ?>
             <div class="alert alert-info">You can update the status and add a technician note for this assigned job.</div>
         <?php elseif ($isTechnician): ?>
             <div class="alert alert-warning">This job is not assigned to you, so you can only view it.</div>
         <?php endif; ?>
         <form method="post" novalidate>
+            <?= csrf_field() ?>
+            <?php if (isset($errors['form'])): ?>
+                <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
+            <?php endif; ?>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="customer">Customer Name</label>
-                    <input id="customer" name="customer" class="form-control" type="text" value="<?= escape($values['customer']) ?>" required autofocus <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="customer" name="customer" class="form-control" type="text" value="<?= escape($values['customer']) ?>" required autofocus maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['customer'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['customer']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="location">Location</label>
-                    <input id="location" name="location" class="form-control" type="text" value="<?= escape($values['location']) ?>" required <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="location" name="location" class="form-control" type="text" value="<?= escape($values['location']) ?>" required maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['location'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['location']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="received_date">Date / Time Received</label>
-                    <input id="received_date" name="received_date" class="form-control" type="datetime-local" value="<?= escape($values['received_date']) ?>" required <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="received_date" name="received_date" class="form-control" type="datetime-local" value="<?= escape($values['received_date']) ?>" required <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="assigned_tech">Assigned Technician</label>
-                    <select id="assigned_tech" name="assigned_tech" class="form-select" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <select id="assigned_tech" name="assigned_tech" class="form-select" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                         <option value="">Unassigned</option>
                         <?php foreach ($technicians as $tech): ?>
                             <option value="<?= escape($tech['id']) ?>" <?= $tech['id'] == $values['assigned_tech'] ? 'selected' : '' ?>><?= escape($tech['name']) ?></option>
@@ -43,7 +52,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="status">Status</label>
-                    <select id="status" name="status" class="form-select" <?= $isTechnician && !$canManage ? 'disabled' : '' ?>>
+                    <select id="status" name="status" class="form-select" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                         <?php foreach ($statuses as $status): ?>
                             <option value="<?= escape($status) ?>" <?= $status === $values['status'] ? 'selected' : '' ?>><?= escape($status) ?></option>
                         <?php endforeach; ?>
@@ -51,7 +60,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="priority">Priority</label>
-                    <select id="priority" name="priority" class="form-select" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <select id="priority" name="priority" class="form-select" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                         <?php foreach ($priorities as $priority): ?>
                             <option value="<?= escape($priority) ?>" <?= $priority === $values['priority'] ? 'selected' : '' ?>><?= escape($priority) ?></option>
                         <?php endforeach; ?>
@@ -59,36 +68,51 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="contact">Customer Contact</label>
-                    <input id="contact" name="contact" class="form-control" type="text" value="<?= escape($values['contact']) ?>" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="contact" name="contact" class="form-control" type="text" value="<?= escape($values['contact']) ?>" maxlength="150" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <?php if (isset($errors['contact'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['contact']) ?></div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="phone">Phone Number</label>
-                    <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <?php if (isset($errors['phone'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['phone']) ?></div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="email">Email</label>
-                    <input id="email" name="email" class="form-control" type="email" value="<?= escape($values['email']) ?>" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="email" name="email" class="form-control" type="email" value="<?= escape($values['email']) ?>" maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <?php if (isset($errors['email'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['email']) ?></div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="po_number">Customer PO Number</label>
-                    <input id="po_number" name="po_number" class="form-control" type="text" value="<?= escape($values['po_number']) ?>" <?= $isTechnician && $canManage ? 'disabled' : '' ?>>
+                    <input id="po_number" name="po_number" class="form-control" type="text" value="<?= escape($values['po_number']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <?php if (isset($errors['po_number'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['po_number']) ?></div>
+                    <?php endif; ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="reported_issue">Reported Issue</label>
-                    <textarea id="reported_issue" name="reported_issue" class="form-control" rows="5" required <?= $isTechnician && $canManage ? 'disabled' : '' ?>><?= escape($values['reported_issue']) ?></textarea>
+                    <textarea id="reported_issue" name="reported_issue" class="form-control" rows="5" required <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>><?= escape($values['reported_issue']) ?></textarea>
                     <?php if (isset($errors['reported_issue'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['reported_issue']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="technician_note">Technician Note</label>
-                    <textarea id="technician_note" name="technician_note" class="form-control" rows="3" <?= $isTechnician && !$canManage ? 'disabled' : '' ?>><?= escape($values['technician_note']) ?></textarea>
+                    <textarea id="technician_note" name="technician_note" class="form-control" rows="3" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>><?= escape($values['technician_note']) ?></textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="internal_notes">Internal Notes</label>
-                    <textarea id="internal_notes" name="internal_notes" class="form-control" rows="3" <?= $isTechnician && $canManage ? 'disabled' : '' ?>><?= escape($values['internal_notes']) ?></textarea>
+                    <textarea id="internal_notes" name="internal_notes" class="form-control" rows="3" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>><?= escape($values['internal_notes']) ?></textarea>
                 </div>
                 <div class="col-12 text-end">
+                    <?php if ($isTechnician && $canSelfAssign): ?>
+                        <button type="submit" name="claim_job" value="1" class="btn btn-success">Claim This Job</button>
+                    <?php endif; ?>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>

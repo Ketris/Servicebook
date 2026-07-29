@@ -16,6 +16,7 @@ $user = $user ?? null;
                         <a class="nav-link dropdown-toggle" href="#" id="adminMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administration</a>
                         <ul class="dropdown-menu" aria-labelledby="adminMenu">
                             <li><a class="dropdown-item" href="<?= url('admin/index.php') ?>">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="<?= url('admin/activity.php') ?>">Activity Log</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/users.php') ?>">Users</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/technicians.php') ?>">Technicians</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/settings.php') ?>">Settings</a></li>
