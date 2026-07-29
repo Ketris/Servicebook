@@ -1,39 +1,13 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 gap-3">
     <div>
         <h1 class="h3">Service Calls</h1>
-        <p class="text-muted mb-0">Showing <?= $filter === 'all' ? 'all' : ($filter === 'unassigned' ? 'unassigned' : 'incomplete') ?> work orders by default. Search by job number, customer, location, PO number, or issue.</p>
+        <p class="text-muted mb-0">Showing all work orders. Search by job number, customer, location, PO number, or issue.</p>
     </div>
-    <form class="d-flex flex-wrap gap-2 align-items-center" method="get" action="<?= url('public/index.php') ?>">
-        <input class="form-control" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
-        <div class="d-flex align-items-center gap-2">
-            <label class="small text-muted mb-0" for="status-filter">Filter</label>
-            <select class="form-select form-select-sm w-auto" id="status-filter" name="filter">
-                <option value="incomplete" <?= $filter === 'incomplete' ? 'selected' : '' ?>>Incomplete</option>
-                <option value="unassigned" <?= $filter === 'unassigned' ? 'selected' : '' ?>>Unassigned</option>
-                <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
-            </select>
-        </div>
+    <form class="d-flex" method="get" action="<?= url('public/index.php') ?>">
+        <input class="form-control me-2" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
         <button class="btn btn-primary" type="submit">Search</button>
     </form>
 </div>
-<?php $showingStatus = false; $filterLabel = $filter === 'all' ? 'all' : ($filter === 'unassigned' ? 'unassigned' : 'incomplete'); ?>
-<?php if ($search !== '' || $filter !== 'incomplete'): ?>
-    <div class="mb-3">
-        <small class="text-muted">
-            <?php if ($search !== ''): ?>
-                Showing calls matching <strong><?= escape($search) ?></strong>
-                <?php $showingStatus = true; ?>
-            <?php endif; ?>
-            <?php if ($filter !== 'incomplete'): ?>
-                <?php if ($showingStatus): ?>
-                    and
-                <?php endif; ?>
-                using filter <strong><?= escape($filterLabel) ?></strong>
-            <?php endif; ?>
-            . (<a href="<?= url('public/index.php') ?>" class="text-decoration-none">Reset</a>)
-        </small>
-    </div>
-<?php endif; ?>
 <div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap">
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <div class="btn-group">
@@ -46,6 +20,18 @@
                     </li>
                 <?php endforeach; ?>
             </ul>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0" for="status-filter">Filter</label>
+            <select class="form-select form-select-sm w-auto" id="status-filter" name="status">
+                <option value="all">All</option>
+                <option value="open">Open</option>
+                <option value="complete">Complete</option>
+                <?php foreach (ServiceCall::getStatusOptions() as $status): ?>
+                    <?php if ($status === 'Complete') continue; ?>
+                    <option value="<?= escape($status) ?>"><?= escape($status) ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -198,17 +184,15 @@
         const rows = tbody.querySelectorAll('tr');
         rows.forEach(row => {
             const statusCell = row.querySelector('[data-column="status"]');
-            const assignedCell = row.querySelector('[data-column="assigned_tech_name"]');
             if (!statusCell) return;
 
             const status = statusCell.textContent.trim();
-            const assigned = assignedCell?.textContent.trim() || '';
             let visible = true;
 
-            if (filterValue === 'incomplete') {
+            if (filterValue === 'open') {
                 visible = status !== 'Complete';
-            } else if (filterValue === 'unassigned') {
-                visible = assigned === 'Unassigned' || assigned === '';
+            } else if (filterValue === 'complete') {
+                visible = status === 'Complete';
             } else if (filterValue !== 'all') {
                 visible = status === filterValue;
             }
@@ -247,8 +231,8 @@
         });
         const statusFilter = document.getElementById('status-filter');
         if (statusFilter) {
-            statusFilter.value = 'incomplete';
-            applyStatusFilter('incomplete');
+            statusFilter.value = 'all';
+            applyStatusFilter('all');
         }
         sortField = null;
         sortDirection = 1;
@@ -271,10 +255,6 @@
 
     if (countElement) {
         countElement.dataset.shown = 'false';
-    }
-
-    if (statusFilter) {
-        applyStatusFilter(statusFilter.value || 'incomplete');
     }
 
     updateVisibleRowCount();

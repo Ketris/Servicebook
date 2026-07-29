@@ -14,7 +14,7 @@ class Auth
     public static function login(string $username, string $password): bool
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, password_hash, display_name, role, active FROM users WHERE username = :username LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, password_hash, display_name, role, technician_id, active FROM users WHERE username = :username LIMIT 1');
         $stmt->execute([':username' => $username]);
         $user = $stmt->fetch();
 
@@ -29,6 +29,7 @@ class Auth
                 'username' => $user['username'],
                 'display_name' => $user['display_name'],
                 'role' => $user['role'],
+                'technician_id' => $user['technician_id'] ?? null,
             ];
             return true;
         }
@@ -40,7 +41,7 @@ class Auth
     {
         self::start();
         if (empty($_SESSION['user'])) {
-            header('Location: ' . url('login.php'));
+            header('Location: ' . url('public/login.php'));
             exit;
         }
     }
@@ -50,7 +51,7 @@ class Auth
         self::requireLogin();
         $user = self::currentUser();
         if (!$user || $user['role'] !== 'Administrator') {
-            header('Location: ' . url('index.php'));
+            header('Location: ' . url('public/index.php'));
             exit;
         }
     }

@@ -83,7 +83,17 @@ class ServiceCall
         return $result ?: null;
     }
 
-    public static function save(array $data, int|null $id = null): int
+    public static function findHistory(int $serviceCallId): array
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            'SELECT * FROM service_call_history WHERE service_call_id = :service_call_id ORDER BY created_at DESC, id DESC'
+        );
+        $stmt->execute([':service_call_id' => $serviceCallId]);
+        return $stmt->fetchAll();
+    }
+
+    public static function save(array $data, int|null $id = null, ?array $actor = null): int
     {
         $pdo = Database::getConnection();
         $now = date('Y-m-d H:i:s');
@@ -115,9 +125,12 @@ class ServiceCall
                 ':created_at' => $now,
                 ':updated_at' => $now,
             ]);
-            return (int)$pdo->lastInsertId();
+            $newId = (int)$pdo->lastInsertId();
+            self::logChange($newId, $actor, 'created', null, 'created', 'Service call created');
+            return $newId;
         }
 
+        $oldCall = self::findById($id);
         $stmt = $pdo->prepare(
             'UPDATE service_calls SET
                  received_date = :received_date,
@@ -151,7 +164,78 @@ class ServiceCall
             ':updated_at' => $now,
             ':id' => $id,
         ]);
+
+        self::logFieldChanges($id, $oldCall, $data, $actor);
         return $id;
+    }
+
+    private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
+    {
+        $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status', 'priority'];
+        foreach ($fields as $field) {
+            $oldValue = self::normalizeHistoryValue($field, $oldCall[$field] ?? null);
+            $newValue = self::normalizeHistoryValue($field, $data[$field] ?? null);
+            if ($oldValue === $newValue) {
+                continue;
+            }
+            self::logChange($serviceCallId, $actor, $field, $oldValue, $newValue);
+        }
+    }
+
+    private static function logChange(int $serviceCallId, ?array $actor, string $fieldName, ?string $oldValue, ?string $newValue, ?string $note = null): void
+    {
+        if ($serviceCallId <= 0) {
+            return;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            'INSERT INTO service_call_history (service_call_id, changed_by_user_id, changed_by_name, field_name, old_value, new_value, note, created_at)
+             VALUES (:service_call_id, :changed_by_user_id, :changed_by_name, :field_name, :old_value, :new_value, :note, NOW())'
+        );
+        $stmt->execute([
+            ':service_call_id' => $serviceCallId,
+            ':changed_by_user_id' => $actor['id'] ?? null,
+            ':changed_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+            ':field_name' => $fieldName,
+            ':old_value' => $oldValue,
+            ':new_value' => $newValue,
+            ':note' => $note,
+        ]);
+    }
+
+    private static function normalizeHistoryValue(string $field, mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($field === 'assigned_tech') {
+            return self::resolveTechnicianName((int)$value);
+        }
+
+        if ($field === 'received_date') {
+            try {
+                return (new DateTime((string)$value))->format('Y-m-d H:i:s');
+            } catch (Exception $exception) {
+                return (string)$value;
+            }
+        }
+
+        return (string)$value;
+    }
+
+    private static function resolveTechnicianName(int|null $technicianId): ?string
+    {
+        if ($technicianId === null || $technicianId <= 0) {
+            return null;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT name FROM technicians WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $technicianId]);
+        $row = $stmt->fetch();
+        return $row ? (string)$row['name'] : (string)$technicianId;
     }
 
     private static function generateJobNumber(string $receivedDate): string
