@@ -12,7 +12,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $error = 'Your session expired. Please try again.';
     } elseif (Auth::login($username, $password)) {
-        header('Location: ' . url('public/index.php'));
+        $user = Auth::currentUser();
+        $destination = ($user['role'] ?? '') === 'Technician'
+            ? url('public/technician_dashboard.php')
+            : url('public/index.php');
+        header('Location: ' . $destination);
         exit;
     } else {
         $error = Auth::lastError();

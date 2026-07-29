@@ -10,6 +10,9 @@ $user = $user ?? null;
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link" href="<?= url('public/new_call.php') ?>">New Call</a></li>
+                <?php if (($user['role'] ?? '') === 'Technician'): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?= url('public/technician_dashboard.php') ?>">My Jobs</a></li>
+                <?php endif; ?>
                 <li class="nav-item"><a class="nav-link" href="<?= url('public/index.php') ?>">All Calls</a></li>
                 <?php if (($user['role'] ?? '') === 'Administrator'): ?>
                     <li class="nav-item dropdown">
@@ -25,7 +28,7 @@ $user = $user ?? null;
                 <?php endif; ?>
             </ul>
             <div class="d-flex align-items-center">
-                <span class="me-3 text-muted">Signed in as <?= escape($user['display_name'] ?? '') ?></span>
+                <span class="me-3 text-muted small">Signed in as <?= escape($user['display_name'] ?? '') ?></span>
                 <a class="btn btn-outline-secondary btn-sm" href="<?= url('public/logout.php') ?>">Logout</a>
             </div>
         </div>

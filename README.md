@@ -18,6 +18,7 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - CSRF protection is enforced on form submissions in public and admin pages.
 - Administrators can clear lockouts and trigger temporary password resets from User Management.
 - Application events and errors are logged to `storage/logs/app.log`.
+- Technician users land on a dedicated My Jobs dashboard after login, with quick status updates and claim actions for unassigned work.
 - Main call list supports quick filters for Completed Today and Completed This Week.
 - Edit call view shows Last Modified timestamp and actor.
 - Administration includes an Activity Log page for recent service call changes.

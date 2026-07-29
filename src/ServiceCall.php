@@ -106,6 +106,98 @@ class ServiceCall
         ];
     }
 
+    public static function getTechnicianDashboardStats(int|null $technicianId): array
+    {
+        if ($technicianId === null || $technicianId <= 0) {
+            return [
+                'active_jobs' => 0,
+                'in_progress_jobs' => 0,
+                'needs_attention_jobs' => 0,
+                'completed_today' => 0,
+                'unassigned_open_calls' => self::getSummaryStats()['unassigned_open_calls'],
+            ];
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            "SELECT
+                SUM(CASE WHEN assigned_tech = :technician_id AND status <> 'Complete' THEN 1 ELSE 0 END) AS active_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id AND status <> 'Complete' AND (priority IN ('High', 'Emergency') OR status IN ('Waiting Parts', 'On Hold')) THEN 1 ELSE 0 END) AS needs_attention_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id AND status = 'Complete' AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN assigned_tech IS NULL AND status <> 'Complete' THEN 1 ELSE 0 END) AS unassigned_open_calls
+             FROM service_calls"
+        );
+        $stmt->execute([':technician_id' => $technicianId]);
+        $row = $stmt->fetch() ?: [];
+
+        return [
+            'active_jobs' => (int)($row['active_jobs'] ?? 0),
+            'in_progress_jobs' => (int)($row['in_progress_jobs'] ?? 0),
+            'needs_attention_jobs' => (int)($row['needs_attention_jobs'] ?? 0),
+            'completed_today' => (int)($row['completed_today'] ?? 0),
+            'unassigned_open_calls' => (int)($row['unassigned_open_calls'] ?? 0),
+        ];
+    }
+
+    public static function findActiveByTechnician(int|null $technicianId, int $limit = 8): array
+    {
+        if ($technicianId === null || $technicianId <= 0) {
+            return [];
+        }
+
+        $safeLimit = max(1, min($limit, 25));
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            "SELECT sc.*, t.name AS assigned_tech_name
+             FROM service_calls sc
+             LEFT JOIN technicians t ON sc.assigned_tech = t.id
+             WHERE sc.assigned_tech = :technician_id
+               AND sc.status <> 'Complete'
+             ORDER BY
+               CASE sc.priority
+                 WHEN 'Emergency' THEN 1
+                 WHEN 'High' THEN 2
+                 WHEN 'Normal' THEN 3
+                 ELSE 4
+               END,
+               CASE sc.status
+                 WHEN 'In Progress' THEN 1
+                 WHEN 'Dispatched' THEN 2
+                 WHEN 'Waiting Parts' THEN 3
+                 WHEN 'On Hold' THEN 4
+                 ELSE 5
+               END,
+               sc.received_date ASC
+             LIMIT {$safeLimit}"
+        );
+        $stmt->execute([':technician_id' => $technicianId]);
+        return $stmt->fetchAll();
+    }
+
+    public static function findClaimableOpenJobs(int $limit = 6): array
+    {
+        $safeLimit = max(1, min($limit, 25));
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query(
+            "SELECT sc.*, t.name AS assigned_tech_name
+             FROM service_calls sc
+             LEFT JOIN technicians t ON sc.assigned_tech = t.id
+             WHERE sc.assigned_tech IS NULL
+               AND sc.status <> 'Complete'
+             ORDER BY
+               CASE sc.priority
+                 WHEN 'Emergency' THEN 1
+                 WHEN 'High' THEN 2
+                 WHEN 'Normal' THEN 3
+                 ELSE 4
+               END,
+               sc.received_date ASC
+             LIMIT {$safeLimit}"
+        );
+        return $stmt->fetchAll();
+    }
+
     public static function findRecentActivity(int $limit = 100): array
     {
         $safeLimit = max(1, min($limit, 500));
@@ -221,6 +313,50 @@ class ServiceCall
         return $id;
     }
 
+    public static function claimForTechnician(int $serviceCallId, int $technicianId, array $actor): void
+    {
+        if ($technicianId <= 0) {
+            throw new InvalidArgumentException('Your account must be linked to a technician profile before claiming jobs.');
+        }
+
+        $call = self::findById($serviceCallId);
+        if (!$call) {
+            throw new InvalidArgumentException('The selected job could not be found.');
+        }
+        if (!empty($call['assigned_tech']) || ($call['status'] ?? '') === 'Complete') {
+            throw new InvalidArgumentException('This job cannot be claimed right now.');
+        }
+
+        $data = self::buildTechnicianSaveData($call);
+        $data['assigned_tech'] = $technicianId;
+        $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), 'claimed this job', $actor);
+
+        self::save($data, $serviceCallId, $actor);
+    }
+
+    public static function updateAssignedTechnicianJob(int $serviceCallId, int $technicianId, string $status, string $technicianNote, array $actor): void
+    {
+        if (!in_array($status, self::getStatusOptions(), true)) {
+            throw new InvalidArgumentException('Invalid status selected.');
+        }
+
+        $call = self::findById($serviceCallId);
+        if (!$call) {
+            throw new InvalidArgumentException('The selected job could not be found.');
+        }
+        if ((int)($call['assigned_tech'] ?? 0) !== $technicianId) {
+            throw new InvalidArgumentException('This job is not assigned to you.');
+        }
+
+        $data = self::buildTechnicianSaveData($call);
+        $data['status'] = $status;
+        if ($technicianNote !== '') {
+            $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), $technicianNote, $actor);
+        }
+
+        self::save($data, $serviceCallId, $actor);
+    }
+
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
         $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status', 'priority'];
@@ -288,6 +424,33 @@ class ServiceCall
         $stmt->execute([':id' => $technicianId]);
         $row = $stmt->fetch();
         return $row ? (string)$row['name'] : (string)$technicianId;
+    }
+
+    private static function buildTechnicianSaveData(array $call): array
+    {
+        return [
+            'received_date' => date('Y-m-d\TH:i', strtotime((string)$call['received_date'])),
+            'customer' => $call['customer'],
+            'location' => $call['location'],
+            'contact' => $call['contact'],
+            'phone' => $call['phone'],
+            'email' => $call['email'],
+            'po_number' => $call['po_number'],
+            'reported_issue' => $call['reported_issue'],
+            'internal_notes' => $call['internal_notes'] ?? '',
+            'assigned_tech' => $call['assigned_tech'],
+            'status' => $call['status'],
+            'priority' => $call['priority'],
+            'created_by' => $call['created_by'],
+        ];
+    }
+
+    private static function appendTechnicianNote(string $existingNotes, string $note, array $actor): string
+    {
+        $timestamp = date('Y-m-d H:i');
+        $prefix = (string)($actor['display_name'] ?? $actor['username'] ?? 'Technician');
+        $entry = "[{$timestamp}] {$prefix}: {$note}";
+        return trim($existingNotes === '' ? $entry : $existingNotes . "\n\n" . $entry);
     }
 
     private static function generateJobNumber(string $receivedDate): string
