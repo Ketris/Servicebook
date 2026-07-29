@@ -6,14 +6,14 @@ class User
     public static function findAll(): array
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->query('SELECT id, username, display_name, role, technician_id, active, created_at FROM users ORDER BY username');
+        $stmt = $pdo->query('SELECT id, username, display_name, role, active, created_at FROM users ORDER BY username');
         return $stmt->fetchAll();
     }
 
     public static function findById(int $id): array|null
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active FROM users WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, display_name, role, active FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -21,20 +21,16 @@ class User
     public static function save(array $data, int|null $id = null): int
     {
         $pdo = Database::getConnection();
-        $role = $data['role'] ?? 'Office Staff';
-        $technicianId = ($role === 'Technician' && !empty($data['technician_id'])) ? (int)$data['technician_id'] : null;
-
         if ($id === null) {
             $stmt = $pdo->prepare(
-                'INSERT INTO users (username, password_hash, display_name, role, technician_id, active, created_at)
-                 VALUES (:username, :password_hash, :display_name, :role, :technician_id, :active, NOW())'
+                'INSERT INTO users (username, password_hash, display_name, role, active, created_at)
+                 VALUES (:username, :password_hash, :display_name, :role, :active, NOW())'
             );
             $stmt->execute([
                 ':username' => $data['username'],
                 ':password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
                 ':display_name' => $data['display_name'],
-                ':role' => $role,
-                ':technician_id' => $technicianId,
+                ':role' => $data['role'],
                 ':active' => $data['active'],
             ]);
             return (int)$pdo->lastInsertId();
@@ -42,13 +38,12 @@ class User
 
         $params = [
             ':display_name' => $data['display_name'],
-            ':role' => $role,
-            ':technician_id' => $technicianId,
+            ':role' => $data['role'],
             ':active' => $data['active'],
             ':id' => $id,
         ];
 
-        $sql = 'UPDATE users SET display_name = :display_name, role = :role, technician_id = :technician_id, active = :active';
+        $sql = 'UPDATE users SET display_name = :display_name, role = :role, active = :active';
 
         if (!empty($data['password'])) {
             $sql .= ', password_hash = :password_hash';
