@@ -8,6 +8,7 @@
                         <div class="alert alert-danger" role="alert"><?= escape($error) ?></div>
                     <?php endif; ?>
                     <form method="post" novalidate>
+                        <?= csrf_field() ?>
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <input id="username" name="username" type="text" class="form-control" value="<?= escape($username) ?>" required autofocus>

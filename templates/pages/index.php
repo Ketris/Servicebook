@@ -1,13 +1,92 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 gap-3">
     <div>
         <h1 class="h3">Service Calls</h1>
-        <p class="text-muted mb-0">Showing all work orders. Search by job number, customer, location, PO number, or issue.</p>
+        <p class="text-muted mb-0">Showing <?=
+            $filter === 'all' ? 'all' : (
+                $filter === 'unassigned' ? 'unassigned' : (
+                    $filter === 'completed_today' ? 'completed today' : (
+                        $filter === 'completed_week' ? 'completed this week' : 'incomplete'
+                    )
+                )
+            )
+        ?> work orders by default. Search by job number, customer, location, PO number, or issue.</p>
     </div>
-    <form class="d-flex" method="get" action="<?= url('public/index.php') ?>">
-        <input class="form-control me-2" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
+    <form class="d-flex flex-wrap gap-2 align-items-center" method="get" action="<?= url('public/index.php') ?>">
+        <input class="form-control" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0" for="status-filter">Filter</label>
+            <select class="form-select form-select-sm w-auto" id="status-filter" name="filter">
+                <option value="incomplete" <?= $filter === 'incomplete' ? 'selected' : '' ?>>Incomplete</option>
+                <option value="unassigned" <?= $filter === 'unassigned' ? 'selected' : '' ?>>Unassigned</option>
+                <option value="completed_today" <?= $filter === 'completed_today' ? 'selected' : '' ?>>Completed Today</option>
+                <option value="completed_week" <?= $filter === 'completed_week' ? 'selected' : '' ?>>Completed This Week</option>
+                <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
+            </select>
+        </div>
         <button class="btn btn-primary" type="submit">Search</button>
     </form>
 </div>
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="small text-muted">Open Calls</div>
+                <div class="h4 mb-0"><?= escape((string)($stats['open_calls'] ?? 0)) ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="small text-muted">Unassigned Open</div>
+                <div class="h4 mb-0"><?= escape((string)($stats['unassigned_open_calls'] ?? 0)) ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="small text-muted">Completed Today</div>
+                <div class="h4 mb-0"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3">
+                <div class="small text-muted">Completed This Week</div>
+                <div class="h4 mb-0"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php
+$showingStatus = false;
+$filterLabel = $filter === 'all' ? 'all' : (
+    $filter === 'unassigned' ? 'unassigned' : (
+        $filter === 'completed_today' ? 'completed today' : (
+            $filter === 'completed_week' ? 'completed this week' : 'incomplete'
+        )
+    )
+);
+?>
+<?php if ($search !== '' || $filter !== 'incomplete'): ?>
+    <div class="mb-3">
+        <small class="text-muted">
+            <?php if ($search !== ''): ?>
+                Showing calls matching <strong><?= escape($search) ?></strong>
+                <?php $showingStatus = true; ?>
+            <?php endif; ?>
+            <?php if ($filter !== 'incomplete'): ?>
+                <?php if ($showingStatus): ?>
+                    and
+                <?php endif; ?>
+                using filter <strong><?= escape($filterLabel) ?></strong>
+            <?php endif; ?>
+            . (<a href="<?= url('public/index.php') ?>" class="text-decoration-none">Reset</a>)
+        </small>
+    </div>
+<?php endif; ?>
 <div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap">
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <div class="btn-group">
@@ -21,22 +100,10 @@
                 <?php endforeach; ?>
             </ul>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <label class="small text-muted mb-0" for="status-filter">Filter</label>
-            <select class="form-select form-select-sm w-auto" id="status-filter" name="status">
-                <option value="all">All</option>
-                <option value="open">Open</option>
-                <option value="complete">Complete</option>
-                <?php foreach (ServiceCall::getStatusOptions() as $status): ?>
-                    <?php if ($status === 'Complete') continue; ?>
-                    <option value="<?= escape($status) ?>"><?= escape($status) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
     </div>
     <div class="d-flex align-items-center gap-2">
         <small class="text-muted mb-0">Click headers to sort. Drag the right edge to resize.</small>
-        <span id="call-count" class="badge rounded-pill text-bg-light border d-none">Showing <?= count($calls) ?> calls</span>
+        <span id="call-count" class="badge rounded-pill text-bg-light border">Showing <?= count($calls) ?> calls</span>
         <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences">↺</button>
     </div>
 </div>
@@ -162,45 +229,12 @@
 
     function updateVisibleRowCount() {
         const allRows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.querySelector('td[data-column]'));
-        const visibleRows = allRows.filter(row => row.style.display !== 'none');
         const countElement = document.getElementById('call-count');
 
         if (!countElement) {
             return;
         }
-
-        if (countElement.dataset.shown !== 'true') {
-            countElement.classList.add('d-none');
-            return;
-        }
-
-        countElement.classList.remove('d-none');
-        countElement.textContent = visibleRows.length === allRows.length
-            ? `Showing ${allRows.length} calls`
-            : `Showing ${visibleRows.length} of ${allRows.length} calls`;
-    }
-
-    function applyStatusFilter(filterValue) {
-        const rows = tbody.querySelectorAll('tr');
-        rows.forEach(row => {
-            const statusCell = row.querySelector('[data-column="status"]');
-            if (!statusCell) return;
-
-            const status = statusCell.textContent.trim();
-            let visible = true;
-
-            if (filterValue === 'open') {
-                visible = status !== 'Complete';
-            } else if (filterValue === 'complete') {
-                visible = status === 'Complete';
-            } else if (filterValue !== 'all') {
-                visible = status === filterValue;
-            }
-
-            row.style.display = visible ? '' : 'none';
-        });
-
-        updateVisibleRowCount();
+        countElement.textContent = `Showing ${allRows.length} calls`;
     }
 
     function applyColumnWidth(column, width) {
@@ -229,32 +263,14 @@
             input.checked = true;
             applyColumnVisibility(input.dataset.column, true);
         });
-        const statusFilter = document.getElementById('status-filter');
-        if (statusFilter) {
-            statusFilter.value = 'all';
-            applyStatusFilter('all');
-        }
         sortField = null;
         sortDirection = 1;
+        updateVisibleRowCount();
     }
 
     const resetButton = document.getElementById('reset-table-button');
     if (resetButton) {
         resetButton.addEventListener('click', resetTablePreferences);
-    }
-
-    const statusFilter = document.getElementById('status-filter');
-    const countElement = document.getElementById('call-count');
-    if (statusFilter) {
-        statusFilter.addEventListener('change', (event) => {
-            const selectedValue = event.target.value;
-            countElement.dataset.shown = selectedValue !== 'all' ? 'true' : 'false';
-            applyStatusFilter(selectedValue);
-        });
-    }
-
-    if (countElement) {
-        countElement.dataset.shown = 'false';
     }
 
     updateVisibleRowCount();

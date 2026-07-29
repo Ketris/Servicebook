@@ -13,16 +13,20 @@
             <a class="btn btn-secondary" href="<?= url('admin/users.php') ?>">Back</a>
         </div>
         <form method="post" novalidate>
+            <?= csrf_field() ?>
+            <?php if (isset($errors['form'])): ?>
+                <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="username">Username</label>
-                <input id="username" name="username" class="form-control" type="text" value="<?= escape($values['username']) ?>" required autofocus>
+                <input id="username" name="username" class="form-control" type="text" value="<?= escape($values['username']) ?>" required autofocus maxlength="100">
                 <?php if (isset($errors['username'])): ?>
                     <div class="invalid-feedback d-block"><?= escape($errors['username']) ?></div>
                 <?php endif; ?>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="display_name">Display Name</label>
-                <input id="display_name" name="display_name" class="form-control" type="text" value="<?= escape($values['display_name']) ?>" required>
+                <input id="display_name" name="display_name" class="form-control" type="text" value="<?= escape($values['display_name']) ?>" required maxlength="150">
                 <?php if (isset($errors['display_name'])): ?>
                     <div class="invalid-feedback d-block"><?= escape($errors['display_name']) ?></div>
                 <?php endif; ?>

@@ -1,6 +1,8 @@
 <?php
 /** @var string $title */
 /** @var string $__content */
+
+apply_security_headers();
 ?>
 <!doctype html>
 <html lang="en">

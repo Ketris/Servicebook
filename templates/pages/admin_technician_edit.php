@@ -13,16 +13,23 @@
             <a class="btn btn-secondary" href="<?= url('admin/technicians.php') ?>">Back</a>
         </div>
         <form method="post" novalidate>
+            <?= csrf_field() ?>
+            <?php if (isset($errors['form'])): ?>
+                <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="name">Name</label>
-                <input id="name" name="name" class="form-control" type="text" value="<?= escape($values['name']) ?>" required autofocus>
+                <input id="name" name="name" class="form-control" type="text" value="<?= escape($values['name']) ?>" required autofocus maxlength="150">
                 <?php if (isset($errors['name'])): ?>
                     <div class="invalid-feedback d-block"><?= escape($errors['name']) ?></div>
                 <?php endif; ?>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="phone">Phone</label>
-                <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>">
+                <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" maxlength="100">
+                <?php if (isset($errors['phone'])): ?>
+                    <div class="invalid-feedback d-block"><?= escape($errors['phone']) ?></div>
+                <?php endif; ?>
             </div>
             <div class="form-check mb-4">
                 <input class="form-check-input" type="checkbox" id="active" name="active" value="1" <?= $values['active'] ? 'checked' : '' ?>>

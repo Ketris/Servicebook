@@ -15,6 +15,10 @@
             <div class="alert alert-success">Settings saved successfully.</div>
         <?php endif; ?>
         <form method="post" novalidate>
+            <?= csrf_field() ?>
+            <?php if (isset($errors['form'])): ?>
+                <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="site_title">Site Title</label>
                 <input id="site_title" name="site_title" class="form-control" type="text" value="<?= escape($settings['site_title']) ?>" required>

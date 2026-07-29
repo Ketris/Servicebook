@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
@@ -19,10 +20,8 @@ if (!$call) {
 
 $isTechnician = ($user['role'] ?? '') === 'Technician';
 $canManage = !$isTechnician || ((int)($call['assigned_tech'] ?? 0) === (int)($user['technician_id'] ?? 0));
-if ($isTechnician && !$canManage) {
-    header('Location: ' . url('public/index.php'));
-    exit;
-}
+$canSelfAssign = $isTechnician && !empty($user['technician_id']) && empty($call['assigned_tech']) && $call['status'] !== 'Complete';
+$canEditDetails = !$isTechnician || $canManage || $canSelfAssign;
 
 $errors = [];
 $values = [
@@ -41,69 +40,175 @@ $values = [
     'technician_note' => '',
 ];
 $history = ServiceCall::findHistory($id);
+$lastModifiedAt = $call['updated_at'] ?? $call['created_at'];
+$lastModifiedBy = !empty($history) ? ($history[0]['changed_by_name'] ?? 'System') : 'System';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($isTechnician && !$canManage) {
-        unset($_POST);
-    } elseif ($isTechnician && $canManage) {
-        $values['status'] = trim($_POST['status'] ?? $values['status']);
-        $values['technician_note'] = trim($_POST['technician_note'] ?? '');
-
-        if (!in_array($values['status'], $statuses, true)) {
-            $errors['status'] = 'Invalid status selected.';
-        }
-
-        if (empty($errors)) {
-            $data = $values;
-            $data['customer'] = $call['customer'];
-            $data['location'] = $call['location'];
-            $data['contact'] = $call['contact'];
-            $data['phone'] = $call['phone'];
-            $data['email'] = $data['email'] ?? $call['email'];
-            $data['po_number'] = $call['po_number'];
-            $data['reported_issue'] = $call['reported_issue'];
-            $data['received_date'] = date('Y-m-d\TH:i', strtotime($call['received_date']));
-            $data['priority'] = $call['priority'];
-            $data['assigned_tech'] = $call['assigned_tech'];
-            $data['created_by'] = $call['created_by'];
-            $data['internal_notes'] = $call['internal_notes'] ?? '';
-            if ($values['technician_note'] !== '') {
+    if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
+        $errors['form'] = 'Your session expired. Please reload and try again.';
+    } else {
+        if ($isTechnician && isset($_POST['claim_job'])) {
+            if (!$canSelfAssign) {
+                $errors['claim_job'] = 'This job cannot be claimed right now.';
+            } else {
+                $claimedTechId = (int)($user['technician_id'] ?? 0);
+                $data = $values;
+                $data['customer'] = $call['customer'];
+                $data['location'] = $call['location'];
+                $data['contact'] = $call['contact'];
+                $data['phone'] = $call['phone'];
+                $data['email'] = $call['email'];
+                $data['po_number'] = $call['po_number'];
+                $data['reported_issue'] = $call['reported_issue'];
+                $data['received_date'] = date('Y-m-d\TH:i', strtotime($call['received_date']));
+                $data['priority'] = $call['priority'];
+                $data['assigned_tech'] = $claimedTechId > 0 ? $claimedTechId : null;
+                $data['status'] = $call['status'];
+                $data['created_by'] = $call['created_by'];
+                $data['internal_notes'] = $call['internal_notes'] ?? '';
                 $timestamp = date('Y-m-d H:i');
                 $prefix = $user['display_name'] ?? 'Technician';
-                $data['internal_notes'] = trim($data['internal_notes'] . "\n\n[{$timestamp}] {$prefix}: {$values['technician_note']}");
+                $data['internal_notes'] = trim($data['internal_notes'] . "\n\n[{$timestamp}] {$prefix}: claimed this job");
+                try {
+                    ServiceCall::save($data, $id, $user);
+                    header('Location: ' . url('public/index.php'));
+                    exit;
+                } catch (InvalidArgumentException $exception) {
+                    $errors['form'] = $exception->getMessage();
+                    Logger::warning('Claim job validation failed', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                } catch (Throwable $exception) {
+                    $errors['form'] = 'Unable to save service call right now.';
+                    Logger::error('Unexpected error claiming service call', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
             }
-            ServiceCall::save($data, $id, $user);
-            header('Location: ' . url('public/index.php'));
-            exit;
-        }
-    } else {
-        foreach ($values as $key => $default) {
-            $values[$key] = trim($_POST[$key] ?? $default);
-        }
+        } elseif ($isTechnician && $canManage) {
+            $values['status'] = trim($_POST['status'] ?? $values['status']);
+            $values['technician_note'] = trim($_POST['technician_note'] ?? '');
 
-        if ($values['customer'] === '') {
-            $errors['customer'] = 'Customer name is required.';
-        }
-        if ($values['location'] === '') {
-            $errors['location'] = 'Location is required.';
-        }
-        if ($values['reported_issue'] === '') {
-            $errors['reported_issue'] = 'Reported issue is required.';
-        }
-        if (!in_array($values['status'], $statuses, true)) {
-            $errors['status'] = 'Invalid status selected.';
-        }
-        if (!in_array($values['priority'], $priorities, true)) {
-            $errors['priority'] = 'Invalid priority selected.';
-        }
+            if (!in_array($values['status'], $statuses, true)) {
+                $errors['status'] = 'Invalid status selected.';
+            }
 
-        if (empty($errors)) {
-            $data = $values;
-            $data['created_by'] = $call['created_by'];
-            $data['assigned_tech'] = $data['assigned_tech'] ?: null;
-            ServiceCall::save($data, $id, $user);
-            header('Location: ' . url('public/index.php'));
-            exit;
+            if (empty($errors)) {
+                $data = $values;
+                $data['customer'] = $call['customer'];
+                $data['location'] = $call['location'];
+                $data['contact'] = $call['contact'];
+                $data['phone'] = $call['phone'];
+                $data['email'] = $data['email'] ?? $call['email'];
+                $data['po_number'] = $call['po_number'];
+                $data['reported_issue'] = $call['reported_issue'];
+                $data['received_date'] = date('Y-m-d\TH:i', strtotime($call['received_date']));
+                $data['priority'] = $call['priority'];
+                $data['assigned_tech'] = $call['assigned_tech'];
+                $data['created_by'] = $call['created_by'];
+                $data['internal_notes'] = $call['internal_notes'] ?? '';
+                if ($values['technician_note'] !== '') {
+                    $timestamp = date('Y-m-d H:i');
+                    $prefix = $user['display_name'] ?? 'Technician';
+                    $data['internal_notes'] = trim($data['internal_notes'] . "\n\n[{$timestamp}] {$prefix}: {$values['technician_note']}");
+                }
+                try {
+                    ServiceCall::save($data, $id, $user);
+                    header('Location: ' . url('public/index.php'));
+                    exit;
+                } catch (InvalidArgumentException $exception) {
+                    $errors['form'] = $exception->getMessage();
+                    Logger::warning('Technician update validation failed', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                } catch (Throwable $exception) {
+                    $errors['form'] = 'Unable to save service call right now.';
+                    Logger::error('Unexpected error in technician service call update', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
+        } else {
+            if ($isTechnician && !$canEditDetails) {
+                $errors['form'] = 'You are not allowed to edit this job.';
+            }
+
+            foreach ($values as $key => $default) {
+                $values[$key] = trim($_POST[$key] ?? $default);
+            }
+
+            if ($values['customer'] === '') {
+                $errors['customer'] = 'Customer name is required.';
+            }
+            if ($values['location'] === '') {
+                $errors['location'] = 'Location is required.';
+            }
+            if ($values['reported_issue'] === '') {
+                $errors['reported_issue'] = 'Reported issue is required.';
+            }
+            if ($values['email'] !== '' && !filter_var($values['email'], FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = 'Email must be a valid address.';
+            }
+            if ($values['phone'] !== '' && !preg_match('/^[0-9+()\-.\s]{7,30}$/', $values['phone'])) {
+                $errors['phone'] = 'Phone number format is invalid.';
+            }
+            if (mb_strlen($values['customer']) > 255) {
+                $errors['customer'] = 'Customer name cannot exceed 255 characters.';
+            }
+            if (mb_strlen($values['location']) > 255) {
+                $errors['location'] = 'Location cannot exceed 255 characters.';
+            }
+            if (mb_strlen($values['contact']) > 150) {
+                $errors['contact'] = 'Customer contact cannot exceed 150 characters.';
+            }
+            if (mb_strlen($values['phone']) > 100) {
+                $errors['phone'] = 'Phone number cannot exceed 100 characters.';
+            }
+            if (mb_strlen($values['email']) > 255) {
+                $errors['email'] = 'Email cannot exceed 255 characters.';
+            }
+            if (mb_strlen($values['po_number']) > 100) {
+                $errors['po_number'] = 'PO number cannot exceed 100 characters.';
+            }
+            if (!in_array($values['status'], $statuses, true)) {
+                $errors['status'] = 'Invalid status selected.';
+            }
+            if (!in_array($values['priority'], $priorities, true)) {
+                $errors['priority'] = 'Invalid priority selected.';
+            }
+
+            if (empty($errors)) {
+                $data = $values;
+                $data['created_by'] = $call['created_by'];
+                $data['assigned_tech'] = $data['assigned_tech'] ?: null;
+                try {
+                    ServiceCall::save($data, $id, $user);
+                    header('Location: ' . url('public/index.php'));
+                    exit;
+                } catch (InvalidArgumentException $exception) {
+                    $errors['form'] = $exception->getMessage();
+                    Logger::warning('Service call edit validation failed', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                } catch (Throwable $exception) {
+                    $errors['form'] = 'Unable to save service call right now.';
+                    Logger::error('Unexpected error updating service call', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
         }
     }
 }
@@ -118,6 +223,10 @@ Template::render('pages/edit_call', [
     'errors' => $errors,
     'values' => $values,
     'history' => $history,
+    'lastModifiedAt' => $lastModifiedAt,
+    'lastModifiedBy' => $lastModifiedBy,
     'isTechnician' => $isTechnician,
     'canManage' => $canManage,
+    'canSelfAssign' => $canSelfAssign,
+    'canEditDetails' => $canEditDetails,
 ], 'layouts/app');

@@ -41,18 +41,33 @@ class ServiceCall
         } elseif ($statusFilter === 'complete') {
             $conditions[] = 'sc.status = :status_complete';
             $params[':status_complete'] = 'Complete';
+        } elseif ($statusFilter === 'completed_today') {
+            $conditions[] = 'sc.status = :status_complete';
+            $conditions[] = 'DATE(sc.updated_at) = CURDATE()';
+            $params[':status_complete'] = 'Complete';
+        } elseif ($statusFilter === 'completed_week') {
+            $conditions[] = 'sc.status = :status_complete';
+            $conditions[] = 'YEARWEEK(sc.updated_at, 1) = YEARWEEK(CURDATE(), 1)';
+            $params[':status_complete'] = 'Complete';
+        } elseif ($statusFilter === 'incomplete') {
+            $conditions[] = 'sc.status <> :status_complete';
+            $params[':status_complete'] = 'Complete';
+        } elseif ($statusFilter === 'unassigned') {
+            $conditions[] = 'sc.assigned_tech IS NULL';
         } elseif (in_array($statusFilter, self::getStatusOptions(), true)) {
             $conditions[] = 'sc.status = :status';
             $params[':status'] = $statusFilter;
         }
 
         if ($search !== null && trim($search) !== '') {
-            $term = '%' . trim($search) . '%';
-            $conditions[] = '(sc.job_number LIKE :term
-                OR sc.customer LIKE :term
-                OR sc.location LIKE :term
-                OR sc.po_number LIKE :term
-                OR sc.reported_issue LIKE :term)';
+            $term = '%' . strtolower(trim($search)) . '%';
+            $conditions[] = '(LOWER(CONCAT(
+                COALESCE(sc.job_number, ""), " ",
+                COALESCE(sc.customer, ""), " ",
+                COALESCE(sc.location, ""), " ",
+                COALESCE(sc.po_number, ""), " ",
+                COALESCE(sc.reported_issue, "")
+            )) LIKE :term)';
             $params[':term'] = $term;
         }
 
@@ -65,6 +80,43 @@ class ServiceCall
 
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public static function getSummaryStats(): array
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query(
+            "SELECT
+                COUNT(*) AS total_calls,
+                SUM(CASE WHEN status <> 'Complete' THEN 1 ELSE 0 END) AS open_calls,
+                SUM(CASE WHEN assigned_tech IS NULL AND status <> 'Complete' THEN 1 ELSE 0 END) AS unassigned_open_calls,
+                SUM(CASE WHEN status = 'Complete' AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN status = 'Complete' AND YEARWEEK(updated_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS completed_this_week
+             FROM service_calls"
+        );
+        $row = $stmt->fetch() ?: [];
+
+        return [
+            'total_calls' => (int)($row['total_calls'] ?? 0),
+            'open_calls' => (int)($row['open_calls'] ?? 0),
+            'unassigned_open_calls' => (int)($row['unassigned_open_calls'] ?? 0),
+            'completed_today' => (int)($row['completed_today'] ?? 0),
+            'completed_this_week' => (int)($row['completed_this_week'] ?? 0),
+        ];
+    }
+
+    public static function findRecentActivity(int $limit = 100): array
+    {
+        $safeLimit = max(1, min($limit, 500));
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query(
+            'SELECT h.*, sc.job_number, sc.customer, sc.location
+             FROM service_call_history h
+             LEFT JOIN service_calls sc ON h.service_call_id = sc.id
+             ORDER BY h.created_at DESC, h.id DESC
+             LIMIT ' . $safeLimit
+        );
         return $stmt->fetchAll();
     }
 
@@ -97,7 +149,7 @@ class ServiceCall
     {
         $pdo = Database::getConnection();
         $now = date('Y-m-d H:i:s');
-        $receivedDate = (new DateTime($data['received_date']))->format('Y-m-d H:i:s');
+        $receivedDate = self::normalizeReceivedDate($data['received_date'] ?? '');
 
         if ($id === null) {
             $jobNumber = self::generateJobNumber($receivedDate);
@@ -243,7 +295,7 @@ class ServiceCall
         $date = new DateTime($receivedDate);
         $monthCode = $date->format('my');
         $start = $date->format('Y-m-01 00:00:00');
-        $end = $date->modify('first day of next month')->format('Y-m-01 00:00:00');
+        $end = (clone $date)->modify('first day of next month')->format('Y-m-01 00:00:00');
 
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
@@ -255,5 +307,27 @@ class ServiceCall
         $sequence = ($row && $row['monthly_count']) ? ((int)$row['monthly_count'] + 1) : 1;
 
         return sprintf('%s-%03d', $monthCode, $sequence);
+    }
+
+    private static function normalizeReceivedDate(mixed $value): string
+    {
+        $input = trim((string)$value);
+        if ($input === '') {
+            throw new InvalidArgumentException('Date / Time Received is required.');
+        }
+
+        $formats = ['Y-m-d\\TH:i', 'Y-m-d H:i:s', 'Y-m-d H:i'];
+        foreach ($formats as $format) {
+            $date = DateTime::createFromFormat($format, $input);
+            if ($date instanceof DateTime) {
+                return $date->format('Y-m-d H:i:s');
+            }
+        }
+
+        try {
+            return (new DateTime($input))->format('Y-m-d H:i:s');
+        } catch (Exception $exception) {
+            throw new InvalidArgumentException('Date / Time Received is invalid.');
+        }
     }
 }
