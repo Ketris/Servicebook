@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/Installation.php';
 require_once __DIR__ . '/../src/Template.php';
 
+Installation::redirectToInstallerIfNeeded();
 Auth::start();
 $error = '';
 $username = '';
@@ -24,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 Template::render('pages/login', [
-    'title' => 'Servicebook Login',
+    'title' => 'Login',
     'error' => $error,
     'username' => $username,
 ], 'layouts/auth');

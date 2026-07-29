@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/Installation.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
 
+Installation::redirectToInstallerIfNeeded();
 Auth::requireLogin();
 $user = Auth::currentUser();
 $search = trim($_GET['search'] ?? '');

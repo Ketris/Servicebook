@@ -1,9 +1,19 @@
+<?php
+/** @var string $app_site_title */
+/** @var string $app_logo_url */
+?>
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5">
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <h1 class="h4 mb-4 text-center">Servicebook Login</h1>
+                    <?php if (!empty($app_logo_url)): ?>
+                        <div class="text-center mb-4">
+                            <img src="<?= escape($app_logo_url) ?>" alt="<?= escape($app_site_title ?? 'Servicebook') ?>" style="max-height: 84px; max-width: 100%;">
+                        </div>
+                    <?php else: ?>
+                        <h1 class="h4 mb-4 text-center"><?= escape(($app_site_title ?? 'Servicebook') . ' Login') ?></h1>
+                    <?php endif; ?>
                     <?php if ($error): ?>
                         <div class="alert alert-danger" role="alert"><?= escape($error) ?></div>
                     <?php endif; ?>

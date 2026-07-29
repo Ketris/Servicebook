@@ -1,9 +1,17 @@
 <?php
 $user = $user ?? null;
+$app_site_title = $app_site_title ?? 'Servicebook';
+$app_logo_url = $app_logo_url ?? '';
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
     <div class="container-fluid">
-        <a class="navbar-brand" href="<?= url('public/index.php') ?>">Servicebook</a>
+        <a class="navbar-brand" href="<?= url('public/index.php') ?>">
+            <?php if ($app_logo_url !== ''): ?>
+                <img src="<?= escape($app_logo_url) ?>" alt="<?= escape($app_site_title) ?>" style="max-height: 44px; max-width: 220px;">
+            <?php else: ?>
+                <?= escape($app_site_title) ?>
+            <?php endif; ?>
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

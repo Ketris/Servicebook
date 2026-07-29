@@ -74,4 +74,14 @@ SQL
             $pdo->exec('ALTER TABLE users ADD COLUMN lock_until DATETIME DEFAULT NULL AFTER failed_login_attempts');
         }
     }
+
+    public static function isInstallationMissingException(\PDOException $exception): bool
+    {
+        $code = (string)$exception->getCode();
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'SQLSTATE[HY000] [1049]')
+            || $code === '42S02'
+            || str_contains($message, 'Base table or view not found');
+    }
 }

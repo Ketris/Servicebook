@@ -1,10 +1,22 @@
 <?php
+require_once __DIR__ . '/AppSettings.php';
 require_once __DIR__ . '/Helpers.php';
 
 class Template
 {
     public static function render(string $template, array $data = [], ?string $layout = null): void
     {
+        if (!isset($data['app_settings'])) {
+            $data['app_settings'] = AppSettings::all();
+        }
+        if (!isset($data['app_site_title'])) {
+            $data['app_site_title'] = (string)($data['app_settings']['site_title'] ?? AppSettings::get('site_title'));
+        }
+        if (!isset($data['app_logo_url'])) {
+            $logoPath = (string)($data['app_settings']['site_logo_path'] ?? '');
+            $data['app_logo_url'] = $logoPath === '' ? '' : url($logoPath);
+        }
+
         $root = dirname(__DIR__);
         $viewPath = $root . '/templates/' . ltrim($template, '/') . '.php';
 
