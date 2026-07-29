@@ -2,7 +2,24 @@
 
 ### Phase 1 Functional Specification
 
-Version 1.0
+Version 1.1
+
+## Current Implementation Snapshot (2026-07-21)
+
+The following are implemented in the current build:
+
+* CSV and print exports for calls, search, technician queue, and activity.
+* Saved views, role defaults, and recent-view shortcuts on the call list.
+* Bulk call updates (status and assignment).
+* Reusable customer/location records with admin merge/update tools.
+* Technician dashboard with claim actions, quick updates, and team availability.
+* Activity log pagination and filtering (search, actor, event type, field, date range).
+* System-level admin events in activity history.
+
+Notable current behavior:
+
+* Status includes `Cancelled` as a closed state.
+* Priority is not used.
 
 ## Project Goal
 
@@ -82,7 +99,7 @@ Update status throughout day
 
 ↓
 
-Mark complete
+Mark complete or cancel
 
 Nothing more is required for Phase 1.
 
@@ -182,6 +199,7 @@ Values
 * Waiting Parts
 * On Hold
 * Complete
+* Cancelled
 
 Default
 
@@ -215,21 +233,6 @@ Text
 
 ---
 
-Priority
-
-Dropdown
-
-* Low
-* Normal
-* High
-* Emergency
-
-Default
-
-Normal
-
----
-
 Internal Notes
 
 Long text.
@@ -256,8 +259,6 @@ Technician
 
 Status
 
-Priority
-
 Reported Issue (truncated)
 
 PO Number
@@ -280,9 +281,9 @@ Search
 
 Open Calls
 
-Completed Today
+Closed Today
 
-Completed This Week
+Closed This Week
 
 Administration
 
@@ -428,7 +429,6 @@ reported_issue
 internal_notes
 assigned_tech
 status
-priority
 created_by
 created_at
 updated_at
@@ -462,11 +462,8 @@ Status
 
 Must be one of allowed values.
 
-Priority
-
-Must be one of allowed values.
-
 ---
+
 
 # Future Compatibility
 
@@ -483,7 +480,7 @@ Although not implemented in Phase 1, the database should be designed so the foll
 * SMS notifications
 * Parts tracking
 * Invoice integration
-* Audit log
+* Advanced audit analytics and retention controls
 * Calendar view
 * Dispatch board
 * GPS location

@@ -24,7 +24,7 @@
     <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="small text-muted">Completed Today</div>
+                <div class="small text-muted">Closed Today</div>
                 <div class="display-6 mb-0"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
             </div>
         </div>
@@ -32,7 +32,7 @@
     <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="small text-muted">Completed This Week</div>
+                <div class="small text-muted">Closed This Week</div>
                 <div class="display-6 mb-0"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
             </div>
         </div>
@@ -48,6 +48,7 @@
             <div class="card-body d-grid gap-2">
                 <a class="btn btn-outline-primary" href="<?= url('admin/users.php') ?>">Manage Users</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/technicians.php') ?>">Manage Technicians</a>
+                <a class="btn btn-outline-primary" href="<?= url('admin/records.php') ?>">Reusable Records</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/activity.php') ?>">View Activity Log</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/settings.php') ?>">System Settings</a>
             </div>

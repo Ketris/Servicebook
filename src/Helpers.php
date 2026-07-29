@@ -91,7 +91,7 @@ if (!function_exists('apply_security_headers')) {
         header('X-Frame-Options: DENY');
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
-        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
     }
 }
 
@@ -105,19 +105,7 @@ if (!function_exists('status_badge_class')) {
             'Waiting Parts' => 'text-bg-warning',
             'On Hold' => 'text-bg-dark',
             'Complete' => 'text-bg-light border',
-            default => 'text-bg-secondary',
-        };
-    }
-}
-
-if (!function_exists('priority_badge_class')) {
-    function priority_badge_class(string $priority): string
-    {
-        return match ($priority) {
-            'Emergency' => 'text-bg-danger',
-            'High' => 'text-bg-warning',
-            'Normal' => 'text-bg-primary',
-            'Low' => 'text-bg-secondary',
+            'Cancelled' => 'text-bg-danger',
             default => 'text-bg-secondary',
         };
     }

@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/ReusableRecord.php';
 
 class ServiceCall
 {
+    private const CLOSED_STATUSES = ['Complete', 'Cancelled'];
+
     public static function getStatusOptions(): array
     {
         return [
@@ -12,16 +15,7 @@ class ServiceCall
             'Waiting Parts',
             'On Hold',
             'Complete',
-        ];
-    }
-
-    public static function getPriorityOptions(): array
-    {
-        return [
-            'Low',
-            'Normal',
-            'High',
-            'Emergency',
+            'Cancelled',
         ];
     }
 
@@ -36,24 +30,20 @@ class ServiceCall
         $statusFilter = trim((string)$statusFilter);
 
         if ($statusFilter === 'open') {
-            $conditions[] = 'sc.status <> :status_complete';
-            $params[':status_complete'] = 'Complete';
+            $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif ($statusFilter === 'complete') {
-            $conditions[] = 'sc.status = :status_complete';
-            $params[':status_complete'] = 'Complete';
+            $conditions[] = self::closedStatusesSql('sc.status');
         } elseif ($statusFilter === 'completed_today') {
-            $conditions[] = 'sc.status = :status_complete';
+            $conditions[] = self::closedStatusesSql('sc.status');
             $conditions[] = 'DATE(sc.updated_at) = CURDATE()';
-            $params[':status_complete'] = 'Complete';
         } elseif ($statusFilter === 'completed_week') {
-            $conditions[] = 'sc.status = :status_complete';
+            $conditions[] = self::closedStatusesSql('sc.status');
             $conditions[] = 'YEARWEEK(sc.updated_at, 1) = YEARWEEK(CURDATE(), 1)';
-            $params[':status_complete'] = 'Complete';
         } elseif ($statusFilter === 'incomplete') {
-            $conditions[] = 'sc.status <> :status_complete';
-            $params[':status_complete'] = 'Complete';
+            $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif ($statusFilter === 'unassigned') {
             $conditions[] = 'sc.assigned_tech IS NULL';
+            $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif (in_array($statusFilter, self::getStatusOptions(), true)) {
             $conditions[] = 'sc.status = :status';
             $params[':status'] = $statusFilter;
@@ -89,10 +79,10 @@ class ServiceCall
         $stmt = $pdo->query(
             "SELECT
                 COUNT(*) AS total_calls,
-                SUM(CASE WHEN status <> 'Complete' THEN 1 ELSE 0 END) AS open_calls,
-                SUM(CASE WHEN assigned_tech IS NULL AND status <> 'Complete' THEN 1 ELSE 0 END) AS unassigned_open_calls,
-                SUM(CASE WHEN status = 'Complete' AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
-                SUM(CASE WHEN status = 'Complete' AND YEARWEEK(updated_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS completed_this_week
+                SUM(CASE WHEN " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS open_calls,
+                SUM(CASE WHEN assigned_tech IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls,
+                SUM(CASE WHEN " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN " . self::closedStatusesSql('status') . " AND YEARWEEK(updated_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS completed_this_week
              FROM service_calls"
         );
         $row = $stmt->fetch() ?: [];
@@ -121,11 +111,11 @@ class ServiceCall
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT
-                SUM(CASE WHEN assigned_tech = :technician_id AND status <> 'Complete' THEN 1 ELSE 0 END) AS active_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS active_jobs,
                 SUM(CASE WHEN assigned_tech = :technician_id AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id AND status <> 'Complete' AND (priority IN ('High', 'Emergency') OR status IN ('Waiting Parts', 'On Hold')) THEN 1 ELSE 0 END) AS needs_attention_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id AND status = 'Complete' AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
-                SUM(CASE WHEN assigned_tech IS NULL AND status <> 'Complete' THEN 1 ELSE 0 END) AS unassigned_open_calls
+                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::notClosedStatusesSql('status') . " AND status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN assigned_tech IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls
              FROM service_calls"
         );
         $stmt->execute([':technician_id' => $technicianId]);
@@ -146,21 +136,15 @@ class ServiceCall
             return [];
         }
 
-        $safeLimit = max(1, min($limit, 25));
+        $safeLimit = max(1, min($limit, 500));
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT sc.*, t.name AS assigned_tech_name
              FROM service_calls sc
              LEFT JOIN technicians t ON sc.assigned_tech = t.id
              WHERE sc.assigned_tech = :technician_id
-               AND sc.status <> 'Complete'
+                             AND " . self::notClosedStatusesSql('sc.status') . "
              ORDER BY
-               CASE sc.priority
-                 WHEN 'Emergency' THEN 1
-                 WHEN 'High' THEN 2
-                 WHEN 'Normal' THEN 3
-                 ELSE 4
-               END,
                CASE sc.status
                  WHEN 'In Progress' THEN 1
                  WHEN 'Dispatched' THEN 2
@@ -177,39 +161,100 @@ class ServiceCall
 
     public static function findClaimableOpenJobs(int $limit = 6): array
     {
-        $safeLimit = max(1, min($limit, 25));
+        $safeLimit = max(1, min($limit, 500));
         $pdo = Database::getConnection();
         $stmt = $pdo->query(
             "SELECT sc.*, t.name AS assigned_tech_name
              FROM service_calls sc
              LEFT JOIN technicians t ON sc.assigned_tech = t.id
              WHERE sc.assigned_tech IS NULL
-               AND sc.status <> 'Complete'
+                             AND " . self::notClosedStatusesSql('sc.status') . "
              ORDER BY
-               CASE sc.priority
-                 WHEN 'Emergency' THEN 1
-                 WHEN 'High' THEN 2
-                 WHEN 'Normal' THEN 3
-                 ELSE 4
-               END,
                sc.received_date ASC
              LIMIT {$safeLimit}"
         );
         return $stmt->fetchAll();
     }
 
-    public static function findRecentActivity(int $limit = 100): array
+    public static function findRecentActivity(int $limit = 100, int $offset = 0, array $filters = []): array
     {
         $safeLimit = max(1, min($limit, 500));
+        $safeOffset = max(0, $offset);
+        [$conditions, $params] = self::buildRecentActivityConditions($filters);
+
+        $query = 'SELECT h.*, sc.job_number, sc.customer, sc.location
+             FROM service_call_history h
+             LEFT JOIN service_calls sc ON h.service_call_id = sc.id';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+        $query .= ' ORDER BY h.created_at DESC, h.id DESC
+             LIMIT ' . $safeLimit . ' OFFSET ' . $safeOffset;
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public static function countRecentActivity(array $filters = []): int
+    {
+        [$conditions, $params] = self::buildRecentActivityConditions($filters);
+
+        $query = 'SELECT COUNT(*) AS activity_count
+             FROM service_call_history h
+             LEFT JOIN service_calls sc ON h.service_call_id = sc.id';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+        return (int)($row['activity_count'] ?? 0);
+    }
+
+    public static function logSystemEvent(
+        ?array $actor,
+        string $fieldName,
+        ?string $oldValue = null,
+        ?string $newValue = null,
+        ?string $note = null
+    ): void {
+        self::logChange(null, $actor, $fieldName, $oldValue, $newValue, $note);
+    }
+
+    public static function getTechnicianWorkloadSummary(): array
+    {
         $pdo = Database::getConnection();
         $stmt = $pdo->query(
-            'SELECT h.*, sc.job_number, sc.customer, sc.location
-             FROM service_call_history h
-             LEFT JOIN service_calls sc ON h.service_call_id = sc.id
-             ORDER BY h.created_at DESC, h.id DESC
-             LIMIT ' . $safeLimit
+            "SELECT
+                t.id,
+                t.name,
+                SUM(CASE WHEN " . self::notClosedStatusesSql('sc.status') . " THEN 1 ELSE 0 END) AS open_jobs,
+                SUM(CASE WHEN sc.status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
+                SUM(CASE WHEN " . self::notClosedStatusesSql('sc.status') . " AND sc.status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_open
+             FROM technicians t
+             LEFT JOIN service_calls sc ON sc.assigned_tech = t.id
+             WHERE t.active = 1
+             GROUP BY t.id, t.name
+             ORDER BY open_jobs ASC, t.name ASC"
         );
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+
+        foreach ($rows as &$row) {
+            $openJobs = (int)($row['open_jobs'] ?? 0);
+            if ($openJobs === 0) {
+                $row['availability'] = 'Available';
+            } elseif ($openJobs <= 3) {
+                $row['availability'] = 'Normal Load';
+            } else {
+                $row['availability'] = 'Heavy Load';
+            }
+        }
+
+        return $rows;
     }
 
     public static function findById(int $id): array|null
@@ -247,9 +292,9 @@ class ServiceCall
             $jobNumber = self::generateJobNumber($receivedDate);
             $stmt = $pdo->prepare(
                 'INSERT INTO service_calls
-                 (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_tech, status, priority, created_by, created_at, updated_at)
+                 (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_tech, status, created_by, created_at, updated_at)
                  VALUES
-                 (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :priority, :created_by, :created_at, :updated_at)'
+                 (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
             );
             $stmt->execute([
                 ':job_number' => $jobNumber,
@@ -264,11 +309,11 @@ class ServiceCall
                 ':internal_notes' => $data['internal_notes'],
                 ':assigned_tech' => $data['assigned_tech'] ?: null,
                 ':status' => $data['status'],
-                ':priority' => $data['priority'],
                 ':created_by' => $data['created_by'],
                 ':created_at' => $now,
                 ':updated_at' => $now,
             ]);
+            ReusableRecord::syncFromServiceCall($data);
             $newId = (int)$pdo->lastInsertId();
             self::logChange($newId, $actor, 'created', null, 'created', 'Service call created');
             return $newId;
@@ -288,7 +333,6 @@ class ServiceCall
                  internal_notes = :internal_notes,
                  assigned_tech = :assigned_tech,
                  status = :status,
-                 priority = :priority,
                  updated_at = :updated_at
              WHERE id = :id'
         );
@@ -304,13 +348,75 @@ class ServiceCall
             ':internal_notes' => $data['internal_notes'],
             ':assigned_tech' => $data['assigned_tech'] ?: null,
             ':status' => $data['status'],
-            ':priority' => $data['priority'],
             ':updated_at' => $now,
             ':id' => $id,
         ]);
 
+        ReusableRecord::syncFromServiceCall($data);
+
         self::logFieldChanges($id, $oldCall, $data, $actor);
         return $id;
+    }
+
+    public static function bulkUpdate(array $serviceCallIds, array $changes, array $actor): int
+    {
+        $normalizedIds = [];
+        foreach ($serviceCallIds as $serviceCallId) {
+            $intId = (int)$serviceCallId;
+            if ($intId > 0) {
+                $normalizedIds[$intId] = true;
+            }
+        }
+
+        $ids = array_keys($normalizedIds);
+        if (empty($ids)) {
+            throw new InvalidArgumentException('Select at least one call for a bulk update.');
+        }
+
+        $status = null;
+        if (array_key_exists('status', $changes)) {
+            $status = trim((string)$changes['status']);
+            if (!in_array($status, self::getStatusOptions(), true)) {
+                throw new InvalidArgumentException('Invalid status selected for bulk update.');
+            }
+        }
+
+        $assignedTech = null;
+        $hasAssignedTech = false;
+        if (array_key_exists('assigned_tech', $changes)) {
+            $hasAssignedTech = true;
+            $assignedTech = $changes['assigned_tech'] === null || $changes['assigned_tech'] === ''
+                ? null
+                : (int)$changes['assigned_tech'];
+            if ($assignedTech !== null && $assignedTech <= 0) {
+                throw new InvalidArgumentException('Invalid technician selected for bulk assignment.');
+            }
+        }
+
+        if ($status === null && !$hasAssignedTech) {
+            throw new InvalidArgumentException('No bulk update change was selected.');
+        }
+
+        $count = 0;
+        foreach ($ids as $id) {
+            $existing = self::findById($id);
+            if (!$existing) {
+                continue;
+            }
+
+            $data = self::buildTechnicianSaveData($existing);
+            if ($status !== null) {
+                $data['status'] = $status;
+            }
+            if ($hasAssignedTech) {
+                $data['assigned_tech'] = $assignedTech;
+            }
+
+            self::save($data, $id, $actor);
+            $count++;
+        }
+
+        return $count;
     }
 
     public static function claimForTechnician(int $serviceCallId, int $technicianId, array $actor): void
@@ -323,7 +429,7 @@ class ServiceCall
         if (!$call) {
             throw new InvalidArgumentException('The selected job could not be found.');
         }
-        if (!empty($call['assigned_tech']) || ($call['status'] ?? '') === 'Complete') {
+        if (!empty($call['assigned_tech']) || self::isClosedStatus((string)($call['status'] ?? ''))) {
             throw new InvalidArgumentException('This job cannot be claimed right now.');
         }
 
@@ -359,7 +465,7 @@ class ServiceCall
 
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
-        $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status', 'priority'];
+        $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
         foreach ($fields as $field) {
             $oldValue = self::normalizeHistoryValue($field, $oldCall[$field] ?? null);
             $newValue = self::normalizeHistoryValue($field, $data[$field] ?? null);
@@ -370,9 +476,9 @@ class ServiceCall
         }
     }
 
-    private static function logChange(int $serviceCallId, ?array $actor, string $fieldName, ?string $oldValue, ?string $newValue, ?string $note = null): void
+    private static function logChange(?int $serviceCallId, ?array $actor, string $fieldName, ?string $oldValue, ?string $newValue, ?string $note = null): void
     {
-        if ($serviceCallId <= 0) {
+        if ($serviceCallId !== null && $serviceCallId <= 0) {
             return;
         }
 
@@ -440,9 +546,81 @@ class ServiceCall
             'internal_notes' => $call['internal_notes'] ?? '',
             'assigned_tech' => $call['assigned_tech'],
             'status' => $call['status'],
-            'priority' => $call['priority'],
             'created_by' => $call['created_by'],
         ];
+    }
+
+    private static function closedStatusesSql(string $column): string
+    {
+        return $column . " IN ('Complete', 'Cancelled')";
+    }
+
+    private static function notClosedStatusesSql(string $column): string
+    {
+        return $column . " NOT IN ('Complete', 'Cancelled')";
+    }
+
+    private static function isClosedStatus(string $status): bool
+    {
+        return in_array($status, self::CLOSED_STATUSES, true);
+    }
+
+    private static function buildRecentActivityConditions(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        $eventType = trim((string)($filters['event_type'] ?? 'all'));
+        if ($eventType === 'service_call') {
+            $conditions[] = 'h.service_call_id IS NOT NULL';
+        } elseif ($eventType === 'system') {
+            $conditions[] = 'h.service_call_id IS NULL';
+        }
+
+        $fieldName = trim((string)($filters['field_name'] ?? ''));
+        if ($fieldName !== '') {
+            $conditions[] = 'h.field_name = :activity_field_name';
+            $params[':activity_field_name'] = $fieldName;
+        }
+
+        $actor = trim((string)($filters['actor'] ?? ''));
+        if ($actor !== '') {
+            $conditions[] = 'LOWER(COALESCE(h.changed_by_name, "")) LIKE :activity_actor';
+            $params[':activity_actor'] = '%' . strtolower($actor) . '%';
+        }
+
+        $dateFrom = trim((string)($filters['date_from'] ?? ''));
+        if ($dateFrom !== '') {
+            $conditions[] = 'h.created_at >= :activity_date_from';
+            $params[':activity_date_from'] = $dateFrom . ' 00:00:00';
+        }
+
+        $dateTo = trim((string)($filters['date_to'] ?? ''));
+        if ($dateTo !== '') {
+            $date = DateTime::createFromFormat('Y-m-d', $dateTo);
+            if ($date instanceof DateTime) {
+                $date->modify('+1 day');
+                $conditions[] = 'h.created_at < :activity_date_to_exclusive';
+                $params[':activity_date_to_exclusive'] = $date->format('Y-m-d') . ' 00:00:00';
+            }
+        }
+
+        $query = trim((string)($filters['query'] ?? ''));
+        if ($query !== '') {
+            $conditions[] = 'LOWER(CONCAT(
+                COALESCE(sc.job_number, ""), " ",
+                COALESCE(sc.customer, ""), " ",
+                COALESCE(sc.location, ""), " ",
+                COALESCE(h.changed_by_name, ""), " ",
+                COALESCE(h.field_name, ""), " ",
+                COALESCE(h.old_value, ""), " ",
+                COALESCE(h.new_value, ""), " ",
+                COALESCE(h.note, "")
+            )) LIKE :activity_query';
+            $params[':activity_query'] = '%' . strtolower($query) . '%';
+        }
+
+        return [$conditions, $params];
     }
 
     private static function appendTechnicianNote(string $existingNotes, string $note, array $actor): string

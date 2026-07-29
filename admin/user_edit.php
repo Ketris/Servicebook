@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/User.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
@@ -56,11 +57,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             try {
+                $isNewUser = $id === null;
                 $savedId = User::save($values, $id);
                 Logger::info('Admin saved user account', [
                     'admin_user_id' => $user['id'] ?? null,
                     'target_user_id' => $savedId,
                 ]);
+                $beforeRole = $record['role'] ?? null;
+                $afterRole = (string)($values['role'] ?? 'Office Staff');
+                $note = $isNewUser
+                    ? 'User account created: ' . $values['username']
+                    : 'User account updated: ' . $values['username'];
+                ServiceCall::logSystemEvent(
+                    $user,
+                    'user_account',
+                    $beforeRole,
+                    $afterRole,
+                    $note
+                );
                 header('Location: ' . url('admin/users.php'));
                 exit;
             } catch (Throwable $exception) {

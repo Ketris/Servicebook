@@ -5,20 +5,12 @@ class AppSettings
 {
     private const DEFAULTS = [
         'site_title' => 'Servicebook',
-        'default_priority' => 'Normal',
         'site_logo_path' => '',
     ];
-
-    private const PRIORITY_OPTIONS = ['Low', 'Normal', 'High', 'Emergency'];
 
     public static function defaults(): array
     {
         return self::DEFAULTS;
-    }
-
-    public static function priorityOptions(): array
-    {
-        return self::PRIORITY_OPTIONS;
     }
 
     public static function all(): array
@@ -43,9 +35,6 @@ class AppSettings
 
         if ($settings['site_title'] === '') {
             $settings['site_title'] = self::DEFAULTS['site_title'];
-        }
-        if (!in_array($settings['default_priority'], self::PRIORITY_OPTIONS, true)) {
-            $settings['default_priority'] = self::DEFAULTS['default_priority'];
         }
         $settings['site_logo_path'] = self::normalizeLogoPath($settings['site_logo_path']);
 
