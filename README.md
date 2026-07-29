@@ -17,3 +17,4 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - Job numbers are generated sequentially and cannot be edited.
 - The main page shows open calls by default.
 - The application uses prepared statements and password hashing.
+# Servicebook
