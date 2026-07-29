@@ -6,7 +6,7 @@
                 <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(date('Y-m-d H:i', strtotime($call['created_at']))) ?></p>
                 <p class="text-muted mb-0">Last Modified <?= escape(date('Y-m-d H:i', strtotime($lastModifiedAt))) ?> by <?= escape((string)$lastModifiedBy) ?></p>
             </div>
-            <a class="btn btn-secondary" href="<?= url('public/index.php') ?>">Back</a>
+            <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
         </div>
         <?php if (!empty($errors['claim_job'])): ?>
             <div class="alert alert-danger"><?= escape($errors['claim_job']) ?></div>

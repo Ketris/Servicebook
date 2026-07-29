@@ -51,27 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$canSelfAssign) {
                 $errors['claim_job'] = 'This job cannot be claimed right now.';
             } else {
-                $claimedTechId = (int)($user['technician_id'] ?? 0);
-                $data = $values;
-                $data['customer'] = $call['customer'];
-                $data['location'] = $call['location'];
-                $data['contact'] = $call['contact'];
-                $data['phone'] = $call['phone'];
-                $data['email'] = $call['email'];
-                $data['po_number'] = $call['po_number'];
-                $data['reported_issue'] = $call['reported_issue'];
-                $data['received_date'] = date('Y-m-d\TH:i', strtotime($call['received_date']));
-                $data['priority'] = $call['priority'];
-                $data['assigned_tech'] = $claimedTechId > 0 ? $claimedTechId : null;
-                $data['status'] = $call['status'];
-                $data['created_by'] = $call['created_by'];
-                $data['internal_notes'] = $call['internal_notes'] ?? '';
-                $timestamp = date('Y-m-d H:i');
-                $prefix = $user['display_name'] ?? 'Technician';
-                $data['internal_notes'] = trim($data['internal_notes'] . "\n\n[{$timestamp}] {$prefix}: claimed this job");
                 try {
-                    ServiceCall::save($data, $id, $user);
-                    header('Location: ' . url('public/index.php'));
+                    ServiceCall::claimForTechnician($id, (int)($user['technician_id'] ?? 0), $user);
+                    header('Location: ' . url('public/technician_dashboard.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {
                     $errors['form'] = $exception->getMessage();
@@ -93,32 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $values['status'] = trim($_POST['status'] ?? $values['status']);
             $values['technician_note'] = trim($_POST['technician_note'] ?? '');
 
-            if (!in_array($values['status'], $statuses, true)) {
-                $errors['status'] = 'Invalid status selected.';
-            }
-
             if (empty($errors)) {
-                $data = $values;
-                $data['customer'] = $call['customer'];
-                $data['location'] = $call['location'];
-                $data['contact'] = $call['contact'];
-                $data['phone'] = $call['phone'];
-                $data['email'] = $data['email'] ?? $call['email'];
-                $data['po_number'] = $call['po_number'];
-                $data['reported_issue'] = $call['reported_issue'];
-                $data['received_date'] = date('Y-m-d\TH:i', strtotime($call['received_date']));
-                $data['priority'] = $call['priority'];
-                $data['assigned_tech'] = $call['assigned_tech'];
-                $data['created_by'] = $call['created_by'];
-                $data['internal_notes'] = $call['internal_notes'] ?? '';
-                if ($values['technician_note'] !== '') {
-                    $timestamp = date('Y-m-d H:i');
-                    $prefix = $user['display_name'] ?? 'Technician';
-                    $data['internal_notes'] = trim($data['internal_notes'] . "\n\n[{$timestamp}] {$prefix}: {$values['technician_note']}");
-                }
                 try {
-                    ServiceCall::save($data, $id, $user);
-                    header('Location: ' . url('public/index.php'));
+                    ServiceCall::updateAssignedTechnicianJob(
+                        $id,
+                        (int)($user['technician_id'] ?? 0),
+                        $values['status'],
+                        $values['technician_note'],
+                        $user
+                    );
+                    header('Location: ' . url('public/technician_dashboard.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {
                     $errors['form'] = $exception->getMessage();
@@ -229,4 +195,5 @@ Template::render('pages/edit_call', [
     'canManage' => $canManage,
     'canSelfAssign' => $canSelfAssign,
     'canEditDetails' => $canEditDetails,
+    'backUrl' => $isTechnician ? url('public/technician_dashboard.php') : url('public/index.php'),
 ], 'layouts/app');
