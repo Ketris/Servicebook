@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/ReusableRecord.php';
 
 class ServiceCall
@@ -272,6 +273,57 @@ class ServiceCall
         return $result ?: null;
     }
 
+    public static function findRelatedCalls(int $currentId, ?string $customer, ?string $location, int $limit = 8): array
+    {
+        $customerKey = self::normalizeLookupValue($customer);
+        $locationKey = self::normalizeLookupValue($location);
+        if ($customerKey === null && $locationKey === null) {
+            return [];
+        }
+
+        $safeLimit = max(1, min($limit, 25));
+        $conditions = ['sc.id <> :current_id'];
+        $params = [':current_id' => $currentId];
+
+        if ($customerKey !== null && $locationKey !== null) {
+            $conditions[] = '(LOWER(TRIM(sc.customer)) = :customer_key OR LOWER(TRIM(sc.location)) = :location_key)';
+            $params[':customer_key'] = $customerKey;
+            $params[':location_key'] = $locationKey;
+        } elseif ($customerKey !== null) {
+            $conditions[] = 'LOWER(TRIM(sc.customer)) = :customer_key';
+            $params[':customer_key'] = $customerKey;
+        } else {
+            $conditions[] = 'LOWER(TRIM(sc.location)) = :location_key';
+            $params[':location_key'] = $locationKey;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare(
+            'SELECT sc.*, t.name AS assigned_tech_name
+             FROM service_calls sc
+             LEFT JOIN technicians t ON sc.assigned_tech = t.id
+             WHERE ' . implode(' AND ', $conditions) . '
+             ORDER BY sc.received_date DESC, sc.id DESC
+             LIMIT ' . $safeLimit
+        );
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        foreach ($rows as &$row) {
+            $matches = [];
+            if ($customerKey !== null && self::normalizeLookupValue($row['customer'] ?? null) === $customerKey) {
+                $matches[] = 'Customer';
+            }
+            if ($locationKey !== null && self::normalizeLookupValue($row['location'] ?? null) === $locationKey) {
+                $matches[] = 'Location';
+            }
+            $row['match_label'] = empty($matches) ? 'Related' : implode(' + ', $matches);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
     public static function findHistory(int $serviceCallId): array
     {
         $pdo = Database::getConnection();
@@ -463,6 +515,44 @@ class ServiceCall
         self::save($data, $serviceCallId, $actor);
     }
 
+    public static function delete(int $serviceCallId, array $actor): bool
+    {
+        $call = self::findById($serviceCallId);
+        if (!$call) {
+            throw new InvalidArgumentException('The selected job could not be found.');
+        }
+
+        $pdo = Database::getConnection();
+        $pdo->beginTransaction();
+
+        try {
+            $deleteHistoryStmt = $pdo->prepare('DELETE FROM service_call_history WHERE service_call_id = :id');
+            $deleteHistoryStmt->execute([':id' => $serviceCallId]);
+
+            $deleteCallStmt = $pdo->prepare('DELETE FROM service_calls WHERE id = :id LIMIT 1');
+            $deleteCallStmt->execute([':id' => $serviceCallId]);
+
+            $deleted = $deleteCallStmt->rowCount() > 0;
+            $pdo->commit();
+
+            if ($deleted) {
+                Logger::warning('Service call permanently deleted', [
+                    'service_call_id' => $serviceCallId,
+                    'job_number' => $call['job_number'] ?? null,
+                    'deleted_by_user_id' => $actor['id'] ?? null,
+                    'deleted_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+                ]);
+            }
+
+            return $deleted;
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
         $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
@@ -553,6 +643,12 @@ class ServiceCall
     private static function closedStatusesSql(string $column): string
     {
         return $column . " IN ('Complete', 'Cancelled')";
+    }
+
+    private static function normalizeLookupValue(?string $value): ?string
+    {
+        $normalized = strtolower(trim((string)$value));
+        return $normalized === '' ? null : $normalized;
     }
 
     private static function notClosedStatusesSql(string $column): string

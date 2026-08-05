@@ -20,6 +20,7 @@ if (!$call) {
 }
 
 $isTechnician = ($user['role'] ?? '') === 'Technician';
+$canDelete = in_array((string)($user['role'] ?? ''), ['Administrator', 'Office Staff'], true);
 $canManage = !$isTechnician || ((int)($call['assigned_tech'] ?? 0) === (int)($user['technician_id'] ?? 0));
 $canSelfAssign = $isTechnician
     && !empty($user['technician_id'])
@@ -43,14 +44,44 @@ $values = [
     'technician_note' => '',
 ];
 $history = ServiceCall::findHistory($id);
+$relatedCalls = ServiceCall::findRelatedCalls($id, $call['customer'] ?? null, $call['location'] ?? null);
 $lastModifiedAt = $call['updated_at'] ?? $call['created_at'];
 $lastModifiedBy = !empty($history) ? ($history[0]['changed_by_name'] ?? 'System') : 'System';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = trim((string)($_POST['action'] ?? 'save_call'));
+
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';
     } else {
-        if ($isTechnician && isset($_POST['claim_job'])) {
+        if ($action === 'delete_call') {
+            if (!$canDelete) {
+                $errors['form'] = 'You are not allowed to delete this job.';
+            } else {
+                try {
+                    if (ServiceCall::delete($id, $user)) {
+                        $_SESSION['success_message'] = 'Service call permanently deleted.';
+                        header('Location: ' . url('public/index.php'));
+                        exit;
+                    }
+                    $errors['form'] = 'Unable to delete this service call right now.';
+                } catch (InvalidArgumentException $exception) {
+                    $errors['form'] = $exception->getMessage();
+                    Logger::warning('Service call delete validation failed', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'error' => $exception->getMessage(),
+                    ]);
+                } catch (Throwable $exception) {
+                    $errors['form'] = 'Unable to delete this service call right now.';
+                    Logger::error('Unexpected error deleting service call', [
+                        'user_id' => $user['id'] ?? null,
+                        'call_id' => $id,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
+        } elseif ($isTechnician && isset($_POST['claim_job'])) {
             if (!$canSelfAssign) {
                 $errors['claim_job'] = 'This job cannot be claimed right now.';
             } else {
@@ -188,9 +219,11 @@ Template::render('pages/edit_call', [
     'errors' => $errors,
     'values' => $values,
     'history' => $history,
+    'relatedCalls' => $relatedCalls,
     'lastModifiedAt' => $lastModifiedAt,
     'lastModifiedBy' => $lastModifiedBy,
     'isTechnician' => $isTechnician,
+    'canDelete' => $canDelete,
     'canManage' => $canManage,
     'canSelfAssign' => $canSelfAssign,
     'canEditDetails' => $canEditDetails,

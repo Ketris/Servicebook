@@ -13,7 +13,8 @@ $user = Auth::currentUser();
 $search = trim($_GET['search'] ?? '');
 $filter = trim($_GET['filter'] ?? 'incomplete');
 $errors = [];
-$success = '';
+$success = trim((string)($_SESSION['success_message'] ?? ''));
+unset($_SESSION['success_message']);
 if (!in_array($filter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
     $filter = 'incomplete';
 }
