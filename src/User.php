@@ -3,6 +3,8 @@ require_once __DIR__ . '/Database.php';
 
 class User
 {
+    private const ALLOWED_ROLES = ['Administrator', 'Office Staff', 'Technician'];
+
     public static function findAll(): array
     {
         $pdo = Database::getConnection();
@@ -22,6 +24,10 @@ class User
     {
         $pdo = Database::getConnection();
         $role = $data['role'] ?? 'Office Staff';
+        if (!in_array($role, self::ALLOWED_ROLES, true)) {
+            throw new InvalidArgumentException('Invalid role selected.');
+        }
+
         $technicianId = ($role === 'Technician' && !empty($data['technician_id'])) ? (int)$data['technician_id'] : null;
 
         if ($id === null) {

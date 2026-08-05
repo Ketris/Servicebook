@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/src/Helpers.php';
+require_once __DIR__ . '/src/Logger.php';
 
 apply_security_headers();
 
@@ -175,12 +176,33 @@ function detectInstallationState(array $setup): array
             'admin_exists' => $adminExists,
         ];
     } catch (PDOException $exception) {
+        Logger::warning('Installer connection check failed', [
+            'db_host' => (string)($setup['db_host'] ?? ''),
+            'db_name' => (string)($setup['db_name'] ?? ''),
+            'db_user' => (string)($setup['db_user'] ?? ''),
+            'exception_code' => (string)$exception->getCode(),
+            'exception' => $exception->getMessage(),
+        ]);
+
         return [
             'status' => 'unreachable',
-            'message' => 'Could not connect to SQL server with those credentials: ' . $exception->getMessage(),
+            'message' => installerConnectionErrorMessage($exception),
             'admin_exists' => false,
         ];
     }
+}
+
+function installerConnectionErrorMessage(PDOException $exception): string
+{
+    $message = (string)$exception->getMessage();
+    if (str_contains($message, 'SQLSTATE[HY000] [1045]')) {
+        return 'Unable to authenticate with SQL using the provided username/password.';
+    }
+    if (str_contains($message, 'SQLSTATE[HY000] [2002]')) {
+        return 'Unable to reach the SQL server at the provided host.';
+    }
+
+    return 'Could not connect to SQL server with those settings. Please verify host, database name, and credentials.';
 }
 
 function runInstallation(array $setup, string $configPath): array
