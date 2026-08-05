@@ -107,11 +107,26 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
                     <label class="form-label" for="internal_notes">Internal Notes</label>
                     <textarea id="internal_notes" name="internal_notes" class="form-control" rows="3" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>><?= escape($values['internal_notes']) ?></textarea>
                 </div>
-                <div class="col-12 text-end">
-                    <?php if ($isTechnician && $canSelfAssign): ?>
-                        <button type="submit" name="claim_job" value="1" class="btn btn-success">Claim This Job</button>
-                    <?php endif; ?>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <?php if ($canDelete): ?>
+                            <button
+                                type="submit"
+                                name="action"
+                                value="delete_call"
+                                class="btn btn-danger"
+                                onclick="return confirm('Permanently delete this service call? This cannot be undone.');"
+                            >
+                                Delete Call
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="ms-auto">
+                        <?php if ($isTechnician && $canSelfAssign): ?>
+                            <button type="submit" name="claim_job" value="1" class="btn btn-success">Claim This Job</button>
+                        <?php endif; ?>
+                        <button type="submit" name="action" value="save_call" class="btn btn-primary">Save Changes</button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -126,6 +141,50 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
                 <option value="<?= escape((string)$locationName) ?>"></option>
             <?php endforeach; ?>
         </datalist>
+
+        <?php if (!empty($relatedCalls)): ?>
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h6 mb-0">Prior Calls For This Customer Or Location</h2>
+                        <div class="small text-muted">Recent jobs that share the same customer name or location.</div>
+                    </div>
+                    <span class="badge text-bg-light"><?= count($relatedCalls) ?></span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Job</th>
+                                    <th scope="col">Match</th>
+                                    <th scope="col">Received</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Technician</th>
+                                    <th scope="col">Issue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($relatedCalls as $relatedCall): ?>
+                                    <tr>
+                                        <td>
+                                            <a href="<?= url('public/edit_call.php?id=' . (int)$relatedCall['id']) ?>">
+                                                <?= escape((string)$relatedCall['job_number']) ?>
+                                            </a>
+                                        </td>
+                                        <td><span class="badge text-bg-secondary"><?= escape((string)($relatedCall['match_label'] ?? 'Related')) ?></span></td>
+                                        <td><?= escape(date('Y-m-d H:i', strtotime((string)$relatedCall['received_date']))) ?></td>
+                                        <td><?= escape((string)$relatedCall['status']) ?></td>
+                                        <td><?= escape((string)($relatedCall['assigned_tech_name'] ?? 'Unassigned')) ?></td>
+                                        <td class="text-break"><?= escape(mb_strimwidth((string)($relatedCall['reported_issue'] ?? ''), 0, 80, '...')) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($history)): ?>
             <div class="card border-0 shadow-sm mt-4">
