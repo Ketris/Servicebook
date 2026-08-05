@@ -38,6 +38,25 @@ Partial
 - Performance/pagination has started (activity), but call/search views can still be paginated later.
 - Logging/monitoring has expanded significantly, but alerting and deeper diagnostics remain optional future work.
 
+## Immediate Engineering TODO (2026-07-30)
+
+1. Session hardening for authentication flows (in progress)
+- Set stricter session cookie params (HttpOnly, SameSite, HTTPS-aware secure flag).
+- Keep strict session mode enabled to reduce fixation risks.
+
+2. Installer error handling hardening (in progress)
+- Stop exposing raw SQL exception text to users during installer connectivity checks.
+- Log full exception details server-side for troubleshooting.
+
+3. Admin user-management input validation (in progress)
+- Enforce allowed role values server-side.
+- Require technician linkage when role is Technician.
+- Require stronger password length for created/updated passwords.
+
+4. Follow-up quality pass (planned)
+- Add lightweight regression checks for login, installer validation, and admin user edits.
+- Capture any remaining high-value hardening opportunities discovered in this pass.
+
 ## Phase 1: High-Value Workflow Improvements
 
 These items should deliver immediate value with minimal disruption to the current app model.
@@ -90,7 +109,7 @@ Technician-facing functionality already exists, so this is a direct improvement 
 
 These features deepen the app’s usefulness across the full lifecycle of a service call.
 
-### 1. Scheduling
+### 1. Scheduling  -- low priority / not currently required
 
 - Add scheduled date and time fields for planned service work.
 - Provide queue views for upcoming appointments.
@@ -99,7 +118,7 @@ These features deepen the app’s usefulness across the full lifecycle of a serv
 Why it fits:
 Current call management appears focused on intake and status tracking. Scheduling would make the app more useful for planned work, not just reactive dispatch.
 
-### 2. Time Tracking
+### 2. Time Tracking  -- low priority / not currently required
 
 - Track start time, completion time, and optional labor duration.
 - Allow manual adjustment where technicians do not work directly from the system in real time.
@@ -254,8 +273,8 @@ API and mobile expansion make sense only after the current core workflow is matu
 ## Suggested Delivery Order
 
 1. Finish remaining Phase 1 partials (customer/location call-history shortcuts), list pagination for high-volume screens, and attachments.
-2. Scheduling, notes/communication depth, and notifications.
-3. Time tracking, recurring work.
+2. notes/communication depth, and notifications.
+3. recurring work.
 4. Dashboards, aging/SLA views, and technician reporting depth.
 5. Performance tuning, testing, deployment cleanup, and migration discipline.
 6. API or mobile expansion only when usage volume and business needs justify it.

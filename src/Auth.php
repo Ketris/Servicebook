@@ -12,6 +12,17 @@ class Auth
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            $isHttps = !empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+            $isHttps = $isHttps || ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443);
+
+            ini_set('session.use_strict_mode', '1');
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'secure' => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
             session_start();
         }
     }

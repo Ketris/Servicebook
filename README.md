@@ -17,7 +17,10 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - The installer creates the initial admin user automatically and shows a one-time temporary password on first run.
 - Login attempts are rate-limited per user and lock for 15 minutes after repeated failures.
 - CSRF protection is enforced on form submissions in public and admin pages.
+- Session cookies are set with HttpOnly, SameSite=Lax, and an HTTPS-aware Secure flag; strict session mode is enabled.
 - Administrators can clear lockouts and trigger temporary password resets from User Management.
+- User management enforces server-side role validation, requires a linked technician profile for Technician accounts, and enforces a 10-character minimum password.
+- Installer connection errors show a sanitized message to the browser; full exception details are logged server-side only.
 - Application events and errors are logged to `storage/logs/app.log`.
 - Technician users land on a dedicated My Jobs dashboard after login, with quick status updates and claim actions for unassigned work.
 - Main call list supports quick filters for open, unassigned, closed today, and closed this week.

@@ -12,6 +12,7 @@ $user = Auth::currentUser();
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $record = $id ? User::findById($id) : null;
 $technicians = Technician::findAll();
+$allowedRoles = ['Administrator', 'Office Staff', 'Technician'];
 $errors = [];
 $values = [
     'username' => $record['username'] ?? '',
@@ -51,8 +52,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['display_name'] = 'Display name cannot exceed 150 characters.';
         }
 
+        if (!in_array($values['role'], $allowedRoles, true)) {
+            $errors['role'] = 'Select a valid role.';
+        }
+
+        if ($values['role'] === 'Technician' && $values['technician_id'] === '') {
+            $errors['technician_id'] = 'Technician role requires a linked technician profile.';
+        }
+
         if (!$id && $values['password'] === '') {
             $errors['password'] = 'Password is required for new users.';
+        } elseif ($values['password'] !== '' && mb_strlen($values['password']) < 10) {
+            $errors['password'] = 'Password must be at least 10 characters.';
         }
 
         if (empty($errors)) {

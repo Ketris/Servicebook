@@ -38,6 +38,9 @@
                     <option value="Office Staff" <?= $values['role'] === 'Office Staff' ? 'selected' : '' ?>>Office Staff</option>
                     <option value="Technician" <?= $values['role'] === 'Technician' ? 'selected' : '' ?>>Technician</option>
                 </select>
+                <?php if (isset($errors['role'])): ?>
+                    <div class="invalid-feedback d-block"><?= escape($errors['role']) ?></div>
+                <?php endif; ?>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="technician_id">Linked Technician</label>
@@ -47,10 +50,14 @@
                         <option value="<?= escape((string)$technician['id']) ?>" <?= (string)$values['technician_id'] === (string)$technician['id'] ? 'selected' : '' ?>><?= escape($technician['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <?php if (isset($errors['technician_id'])): ?>
+                    <div class="invalid-feedback d-block"><?= escape($errors['technician_id']) ?></div>
+                <?php endif; ?>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="password">Password <?= $id ? '(leave blank to keep current)' : '' ?></label>
-                <input id="password" name="password" class="form-control" type="password" autocomplete="new-password">
+                <input id="password" name="password" class="form-control" type="password" autocomplete="new-password" minlength="10">
+                <div class="form-text">Use at least 10 characters.</div>
                 <?php if (isset($errors['password'])): ?>
                     <div class="invalid-feedback d-block"><?= escape($errors['password']) ?></div>
                 <?php endif; ?>
