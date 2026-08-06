@@ -515,11 +515,26 @@ class ServiceCall
         self::save($data, $serviceCallId, $actor);
     }
 
-    public static function delete(int $serviceCallId, array $actor): bool
+    public static function delete(int $serviceCallId, array $actor): string
     {
         $call = self::findById($serviceCallId);
         if (!$call) {
             throw new InvalidArgumentException('The selected job could not be found.');
+        }
+
+        if (!self::isNewestCall($serviceCallId)) {
+            $data = self::buildTechnicianSaveData($call);
+            $data['status'] = 'Cancelled';
+            self::save($data, $serviceCallId, $actor);
+
+            Logger::warning('Service call marked cancelled via delete action', [
+                'service_call_id' => $serviceCallId,
+                'job_number' => $call['job_number'] ?? null,
+                'updated_by_user_id' => $actor['id'] ?? null,
+                'updated_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+            ]);
+
+            return 'cancelled';
         }
 
         $pdo = Database::getConnection();
@@ -544,7 +559,11 @@ class ServiceCall
                 ]);
             }
 
-            return $deleted;
+            if (!$deleted) {
+                throw new RuntimeException('Unable to delete this service call right now.');
+            }
+
+            return 'deleted';
         } catch (Throwable $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -736,14 +755,33 @@ class ServiceCall
 
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT COUNT(*) AS monthly_count FROM service_calls
-             WHERE received_date >= :start AND received_date < :end'
+            'SELECT MAX(CAST(SUBSTRING_INDEX(job_number, "-", -1) AS UNSIGNED)) AS max_sequence
+             FROM service_calls
+             WHERE received_date >= :start
+               AND received_date < :end
+               AND job_number LIKE :job_prefix'
         );
-        $stmt->execute([':start' => $start, ':end' => $end]);
+        $stmt->execute([
+            ':start' => $start,
+            ':end' => $end,
+            ':job_prefix' => $monthCode . '-%',
+        ]);
         $row = $stmt->fetch();
-        $sequence = ($row && $row['monthly_count']) ? ((int)$row['monthly_count'] + 1) : 1;
+        $sequence = (int)($row['max_sequence'] ?? 0) + 1;
 
         return sprintf('%s-%03d', $monthCode, $sequence);
+    }
+
+    private static function isNewestCall(int $serviceCallId): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query('SELECT id FROM service_calls ORDER BY id DESC LIMIT 1');
+        $row = $stmt->fetch();
+        if (!$row) {
+            return false;
+        }
+
+        return (int)($row['id'] ?? 0) === $serviceCallId;
     }
 
     private static function normalizeReceivedDate(mixed $value): string
