@@ -392,6 +392,7 @@ class ReusableRecord
 
         $customerNames = [];
         $customerProfiles = [];
+        $customerLocations = [];
         foreach ($customers as $customer) {
             $name = trim((string)($customer['customer_name'] ?? ''));
             if ($name === '') {
@@ -409,19 +410,58 @@ class ReusableRecord
 
         $locationNames = [];
         $locationProfiles = [];
+        $locationProfilesByCustomer = [];
         foreach ($locations as $location) {
             $name = trim((string)($location['location_name'] ?? ''));
             if ($name === '') {
                 continue;
             }
 
+            $customerName = trim((string)($location['customer_name'] ?? ''));
+            $customerKey = self::buildKey($customerName);
+            $locationKey = self::buildKey($name);
+
             $locationNames[] = $name;
-            $locationProfiles[self::buildKey($name)] = [
-                'customer' => (string)($location['customer_name'] ?? ''),
-                'contact' => (string)($location['default_contact'] ?? ''),
-                'phone' => (string)($location['default_phone'] ?? ''),
-                'email' => (string)($location['default_email'] ?? ''),
-            ];
+            if (!isset($locationProfiles[$locationKey])) {
+                $locationProfiles[$locationKey] = [
+                    'customer' => $customerName,
+                    'contact' => (string)($location['default_contact'] ?? ''),
+                    'phone' => (string)($location['default_phone'] ?? ''),
+                    'email' => (string)($location['default_email'] ?? ''),
+                ];
+            }
+
+            if ($customerKey !== '') {
+                if (!isset($customerLocations[$customerKey])) {
+                    $customerLocations[$customerKey] = [];
+                }
+                $customerLocations[$customerKey][] = $name;
+
+                if (!isset($locationProfilesByCustomer[$customerKey])) {
+                    $locationProfilesByCustomer[$customerKey] = [];
+                }
+                if (!isset($locationProfilesByCustomer[$customerKey][$locationKey])) {
+                    $locationProfilesByCustomer[$customerKey][$locationKey] = [
+                        'customer' => $customerName,
+                        'contact' => (string)($location['default_contact'] ?? ''),
+                        'phone' => (string)($location['default_phone'] ?? ''),
+                        'email' => (string)($location['default_email'] ?? ''),
+                    ];
+                }
+            }
+
+            if (empty($locationProfiles[$locationKey]['customer']) && $customerName !== '') {
+                $locationProfiles[$locationKey]['customer'] = $customerName;
+            }
+            if (empty($locationProfiles[$locationKey]['contact']) && !empty($location['default_contact'])) {
+                $locationProfiles[$locationKey]['contact'] = (string)$location['default_contact'];
+            }
+            if (empty($locationProfiles[$locationKey]['phone']) && !empty($location['default_phone'])) {
+                $locationProfiles[$locationKey]['phone'] = (string)$location['default_phone'];
+            }
+            if (empty($locationProfiles[$locationKey]['email']) && !empty($location['default_email'])) {
+                $locationProfiles[$locationKey]['email'] = (string)$location['default_email'];
+            }
         }
 
         // Fallback for environments where reusable tables are not yet fully populated.
@@ -460,8 +500,31 @@ class ReusableRecord
                             'email' => trim((string)($row['email'] ?? '')),
                         ];
                     }
+
+                    if ($customerName !== '') {
+                        if (!isset($customerLocations[$customerKey])) {
+                            $customerLocations[$customerKey] = [];
+                        }
+                        $customerLocations[$customerKey][] = $locationName;
+
+                        if (!isset($locationProfilesByCustomer[$customerKey])) {
+                            $locationProfilesByCustomer[$customerKey] = [];
+                        }
+                        if (!isset($locationProfilesByCustomer[$customerKey][$locationKey])) {
+                            $locationProfilesByCustomer[$customerKey][$locationKey] = [
+                                'customer' => $customerName,
+                                'contact' => trim((string)($row['contact'] ?? '')),
+                                'phone' => trim((string)($row['phone'] ?? '')),
+                                'email' => trim((string)($row['email'] ?? '')),
+                            ];
+                        }
+                    }
                 }
             }
+        }
+
+        foreach ($customerLocations as $customerKey => $locationsForCustomer) {
+            $customerLocations[$customerKey] = array_values(array_unique($locationsForCustomer));
         }
 
         return [
@@ -469,6 +532,8 @@ class ReusableRecord
             'location_names' => array_values(array_unique($locationNames)),
             'customer_profiles' => $customerProfiles,
             'location_profiles' => $locationProfiles,
+            'customer_locations' => $customerLocations,
+            'location_profiles_by_customer' => $locationProfilesByCustomer,
         ];
     }
 

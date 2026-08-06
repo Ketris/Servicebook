@@ -3,6 +3,13 @@ $customerNames = $recordSuggestions['customer_names'] ?? [];
 $locationNames = $recordSuggestions['location_names'] ?? [];
 $customerProfiles = $recordSuggestions['customer_profiles'] ?? [];
 $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
+$customerLocations = $recordSuggestions['customer_locations'] ?? [];
+$locationProfilesByCustomer = $recordSuggestions['location_profiles_by_customer'] ?? [];
+
+$selectedCustomerKey = mb_strtolower(trim((string)($values['customer'] ?? '')));
+$initialLocationNames = $selectedCustomerKey !== ''
+    ? ($customerLocations[$selectedCustomerKey] ?? [])
+    : [];
 ?>
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
@@ -137,7 +144,7 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
             <?php endforeach; ?>
         </datalist>
         <datalist id="location-options">
-            <?php foreach ($locationNames as $locationName): ?>
+            <?php foreach ($initialLocationNames as $locationName): ?>
                 <option value="<?= escape((string)$locationName) ?>"></option>
             <?php endforeach; ?>
         </datalist>
@@ -220,8 +227,9 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
     const contactInput = document.getElementById('contact');
     const phoneInput = document.getElementById('phone');
     const emailInput = document.getElementById('email');
+    const locationOptions = document.getElementById('location-options');
 
-    if (!customerInput || !locationInput || !contactInput || !phoneInput || !emailInput) {
+    if (!customerInput || !locationInput || !contactInput || !phoneInput || !emailInput || !locationOptions) {
         return;
     }
 
@@ -231,6 +239,8 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
 
     const customerProfiles = <?= json_encode($customerProfiles, JSON_UNESCAPED_SLASHES) ?>;
     const locationProfiles = <?= json_encode($locationProfiles, JSON_UNESCAPED_SLASHES) ?>;
+    const customerLocations = <?= json_encode($customerLocations, JSON_UNESCAPED_SLASHES) ?>;
+    const locationProfilesByCustomer = <?= json_encode($locationProfilesByCustomer, JSON_UNESCAPED_SLASHES) ?>;
 
     function keyFor(value) {
         return String(value || '').trim().toLowerCase();
@@ -243,7 +253,24 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
         input.value = value;
     }
 
+    function renderLocationOptions(options) {
+        locationOptions.innerHTML = '';
+        (options || []).forEach((name) => {
+            const option = document.createElement('option');
+            option.value = name;
+            locationOptions.appendChild(option);
+        });
+    }
+
+    function syncLocationOptionsForCustomer() {
+        const customerKey = keyFor(customerInput.value);
+        const options = customerKey !== '' ? (customerLocations[customerKey] || []) : [];
+        renderLocationOptions(options);
+    }
+
     function applyCustomerProfile() {
+        syncLocationOptionsForCustomer();
+
         const profile = customerProfiles[keyFor(customerInput.value)] || null;
         if (!profile) {
             return;
@@ -256,7 +283,12 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
     }
 
     function applyLocationProfile() {
-        const profile = locationProfiles[keyFor(locationInput.value)] || null;
+        const customerKey = keyFor(customerInput.value);
+        const locationKey = keyFor(locationInput.value);
+        const profileByCustomer = locationProfilesByCustomer[customerKey] || null;
+        const profile = (profileByCustomer && profileByCustomer[locationKey])
+            ? profileByCustomer[locationKey]
+            : (locationProfiles[locationKey] || null);
         if (!profile) {
             return;
         }
@@ -267,9 +299,12 @@ $locationProfiles = $recordSuggestions['location_profiles'] ?? [];
         fillIfEmpty(emailInput, profile.email || '');
     }
 
+    customerInput.addEventListener('input', syncLocationOptionsForCustomer);
     customerInput.addEventListener('change', applyCustomerProfile);
     customerInput.addEventListener('blur', applyCustomerProfile);
     locationInput.addEventListener('change', applyLocationProfile);
     locationInput.addEventListener('blur', applyLocationProfile);
+
+    syncLocationOptionsForCustomer();
 })();
 </script>
