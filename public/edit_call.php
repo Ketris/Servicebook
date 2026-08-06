@@ -59,12 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['form'] = 'You are not allowed to delete this job.';
             } else {
                 try {
-                    if (ServiceCall::delete($id, $user)) {
+                    $deleteResult = ServiceCall::delete($id, $user);
+                    if ($deleteResult === 'deleted') {
                         $_SESSION['success_message'] = 'Service call permanently deleted.';
-                        header('Location: ' . url('public/index.php'));
-                        exit;
+                    } else {
+                        $_SESSION['success_message'] = 'Service call was not the newest entry, so it was marked Cancelled.';
                     }
-                    $errors['form'] = 'Unable to delete this service call right now.';
+                    header('Location: ' . url('public/index.php'));
+                    exit;
                 } catch (InvalidArgumentException $exception) {
                     $errors['form'] = $exception->getMessage();
                     Logger::warning('Service call delete validation failed', [
