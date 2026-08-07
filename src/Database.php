@@ -23,29 +23,8 @@ class Database
         ];
 
         self::$connection = new PDO($dsn, $config['db_user'], $config['db_pass'], $options);
+        self::ensureSchema();
         return self::$connection;
-    }
-
-    public static function hasRequiredSchema(): bool
-    {
-        $pdo = self::getConnection();
-        $requiredTables = ['users', 'technicians', 'settings', 'service_calls'];
-
-        $stmt = $pdo->prepare(
-            'SELECT COUNT(*) AS table_count
-             FROM information_schema.TABLES
-             WHERE TABLE_SCHEMA = DATABASE()
-               AND TABLE_NAME = :table_name'
-        );
-
-        foreach ($requiredTables as $tableName) {
-            $stmt->execute([':table_name' => $tableName]);
-            if ((int)$stmt->fetchColumn() === 0) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     public static function ensureSchema(): void
