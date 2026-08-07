@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/src/Helpers.php';
 require_once __DIR__ . '/src/Logger.php';
+require_once __DIR__ . '/src/Auth.php';
 
 apply_security_headers();
 
@@ -35,13 +36,48 @@ if (isset($_SESSION[INSTALLER_SESSION_KEY]) && is_array($_SESSION[INSTALLER_SESS
     }
 }
 $detectedState = detectInstallationState($formData);
+$installerNeedsAdminAuth = in_array($detectedState['status'], ['installed', 'partial'], true);
+$installerLoginUsername = '';
+
+Auth::start();
+$currentInstallerUser = Auth::currentUser();
+$installerAdminAuthenticated = is_array($currentInstallerUser)
+    && (($currentInstallerUser['role'] ?? '') === 'Administrator');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';
     } else {
         $action = (string)($_POST['action'] ?? '');
-        if ($action === 'collect') {
+        if ($action === 'installer_login') {
+            if (!$installerNeedsAdminAuth) {
+                $errors['form'] = 'Installer sign-in is not required before initial setup.';
+            } else {
+                $installerLoginUsername = trim((string)($_POST['installer_username'] ?? ''));
+                $installerPassword = (string)($_POST['installer_password'] ?? '');
+
+                if ($installerLoginUsername === '' || $installerPassword === '') {
+                    $errors['form'] = 'Username and password are required.';
+                } elseif (!Auth::login($installerLoginUsername, $installerPassword)) {
+                    $errors['form'] = Auth::lastError() ?: 'Unable to sign in right now.';
+                } else {
+                    $signedIn = Auth::currentUser();
+                    if (($signedIn['role'] ?? '') !== 'Administrator') {
+                        Auth::logout();
+                        $errors['form'] = 'Installer access requires an Administrator account.';
+                    } else {
+                        header('Location: ' . url('install.php'));
+                        exit;
+                    }
+                }
+            }
+        } elseif ($action === 'installer_logout') {
+            Auth::logout();
+            header('Location: ' . url('install.php'));
+            exit;
+        } elseif ($installerNeedsAdminAuth && !$installerAdminAuthenticated) {
+            $errors['form'] = 'Administrator sign-in is required before running installer actions on an existing installation.';
+        } elseif ($action === 'collect') {
             $formData['db_host'] = trim((string)($_POST['db_host'] ?? ''));
             $formData['db_name'] = trim((string)($_POST['db_name'] ?? ''));
             $formData['db_user'] = trim((string)($_POST['db_user'] ?? ''));
@@ -65,6 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $detectedState = detectInstallationState($formData);
                 if ($detectedState['status'] === 'unreachable') {
                     $errors['form'] = $detectedState['message'];
+                } elseif (in_array($detectedState['status'], ['installed', 'partial'], true) && !$installerAdminAuthenticated) {
+                    $errors['form'] = 'Administrator sign-in is required before updating an existing installation.';
                 } else {
                     $_SESSION[INSTALLER_SESSION_KEY] = $formData;
                     $showConfirmation = true;
@@ -81,6 +119,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $detectedState = detectInstallationState($formData);
                 if ($detectedState['status'] === 'unreachable') {
                     $errors['form'] = $detectedState['message'];
+                } elseif (in_array($detectedState['status'], ['installed', 'partial'], true) && !$installerAdminAuthenticated) {
+                    $errors['form'] = 'Administrator sign-in is required before confirming installer updates.';
                 } else {
                     $result = runInstallation($formData, $configPath);
                     if (!empty($result['error'])) {
@@ -411,15 +451,26 @@ SQL
                     <h1 class="h3 mb-3">Servicebook Installer</h1>
                     <p class="text-muted">Provide installation details, review what will happen, then confirm before setup runs.</p>
 
+                    <?php if ($installerNeedsAdminAuth && $installerAdminAuthenticated): ?>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div class="small text-muted">Installer unlocked for admin: <strong><?= escape((string)($currentInstallerUser['display_name'] ?? $currentInstallerUser['username'] ?? 'Administrator')) ?></strong></div>
+                            <form method="post" class="m-0">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="action" value="installer_logout">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Sign out</button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($detectedState['status'] === 'installed' && !$showConfirmation && $result === null): ?>
                         <div class="alert alert-info">
                             <strong>Existing installation detected.</strong>
-                            <div class="mt-2">You can go straight to login or run this installer to update connection settings and verify schema.</div>
+                            <div class="mt-2">Administrator sign-in is required before this installer can update connection settings or verify schema.</div>
                             <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="<?= escape(url('public/login.php')) ?>">Go to login</a></div>
                         </div>
                     <?php elseif ($detectedState['status'] === 'partial' && !$showConfirmation && $result === null): ?>
                         <div class="alert alert-warning">
-                            <strong>Partial installation detected.</strong> Run the installer below to complete/repair the setup.
+                            <strong>Partial installation detected.</strong> Administrator sign-in is required to complete/repair this setup.
                         </div>
                     <?php endif; ?>
 
@@ -427,7 +478,29 @@ SQL
                         <div class="alert alert-danger"><?= escape($errors['form']) ?></div>
                     <?php endif; ?>
 
-                    <?php if ($result !== null && empty($result['error'])): ?>
+                    <?php if ($installerNeedsAdminAuth && !$installerAdminAuthenticated): ?>
+                        <div class="alert alert-warning">
+                            Sign in as an <strong>Administrator</strong> to unlock installer updates for this existing installation.
+                        </div>
+                        <form method="post" novalidate>
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="action" value="installer_login">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="installer_username">Administrator Username</label>
+                                    <input id="installer_username" name="installer_username" class="form-control" value="<?= escape($installerLoginUsername) ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="installer_password">Password</label>
+                                    <input id="installer_password" name="installer_password" type="password" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="mt-4 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">Sign in to installer</button>
+                                <a class="btn btn-outline-secondary" href="<?= escape(url('public/login.php')) ?>">Go to login</a>
+                            </div>
+                        </form>
+                    <?php elseif ($result !== null && empty($result['error'])): ?>
                         <div class="alert alert-success">
                             <strong><?= escape($notice) ?></strong>
                         </div>
