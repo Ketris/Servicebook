@@ -218,16 +218,20 @@ class BackupManager
         $tablesRestored = 0;
         $rowsRestored = 0;
 
-        $pdo->beginTransaction();
-        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+        $transactionStarted = false;
         try {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+            $pdo->beginTransaction();
+            $transactionStarted = true;
+
             foreach ($tables as $tableName => $rows) {
                 if (!is_string($tableName) || !isset($existing[$tableName])) {
                     continue;
                 }
 
                 $safeTable = self::quoteIdentifier($tableName);
-                $pdo->exec('TRUNCATE TABLE ' . $safeTable);
+                // DELETE preserves the transaction; TRUNCATE causes implicit commits in MySQL.
+                $pdo->exec('DELETE FROM ' . $safeTable);
                 $tablesRestored++;
 
                 if (!is_array($rows) || empty($rows)) {
@@ -258,14 +262,21 @@ class BackupManager
                 }
             }
 
-            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
             $pdo->commit();
+            $transactionStarted = false;
         } catch (Throwable $exception) {
-            if ($pdo->inTransaction()) {
+            if ($transactionStarted && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
             throw $exception;
+        } finally {
+            try {
+                $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+            } catch (Throwable $exception) {
+                Logger::warning('Unable to re-enable foreign key checks after backup restore', [
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
         }
 
         return [
