@@ -6,6 +6,10 @@ class AppSettings
     private const DEFAULTS = [
         'site_title' => 'Servicebook',
         'site_logo_path' => '',
+        'backup_auto_enabled' => '1',
+        'backup_cadence' => 'daily',
+        'backup_retention_days' => '60',
+        'backup_last_run_at' => '',
     ];
 
     public static function defaults(): array

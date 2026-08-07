@@ -2,6 +2,7 @@
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Helpers.php';
 require_once __DIR__ . '/Logger.php';
+require_once __DIR__ . '/BackupManager.php';
 
 class Auth
 {
@@ -117,6 +118,14 @@ class Auth
         if (empty($_SESSION['user'])) {
             header('Location: ' . url('public/login.php'));
             exit;
+        }
+
+        try {
+            BackupManager::runScheduledIfDue();
+        } catch (Throwable $exception) {
+            Logger::error('Automatic backup scheduler error', [
+                'exception' => $exception->getMessage(),
+            ]);
         }
     }
 
