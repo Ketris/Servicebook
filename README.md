@@ -16,6 +16,7 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 
 - The installer creates the initial admin user automatically and shows a one-time temporary password on first run.
 - Apache hardening rules are included in the project-root `.htaccess` to block direct web access to sensitive directories (for hosts where DocumentRoot cannot be pointed at `public/`).
+- Uploaded branding files are protected with Apache rules that disable script execution in `public/assets/branding/`.
 - Recommended deployment remains setting Apache DocumentRoot to `public/` when possible.
 - Login attempts are rate-limited per user and lock for 15 minutes after repeated failures.
 - CSRF protection is enforced on form submissions in public and admin pages.
