@@ -334,7 +334,7 @@ class ServiceCall
         return $stmt->fetchAll();
     }
 
-    public static function save(array $data, int|null $id = null, ?array $actor = null): int
+    public static function save(array $data, int|null $id = null, ?array $actor = null, ?string $expectedUpdatedAt = null): int
     {
         $pdo = Database::getConnection();
         $now = date('Y-m-d H:i:s');
@@ -393,6 +393,18 @@ class ServiceCall
         }
 
         $oldCall = self::findById($id);
+        if ($oldCall === null) {
+            throw new InvalidArgumentException('The selected job could not be found.');
+        }
+
+        $expectedVersion = self::normalizeExpectedUpdatedAt(
+            $expectedUpdatedAt,
+            (string)($oldCall['updated_at'] ?? $oldCall['created_at'] ?? '')
+        );
+        if ($expectedVersion === null) {
+            throw new InvalidArgumentException('Could not validate the latest job version. Reload and try again.');
+        }
+
         $stmt = $pdo->prepare(
             'UPDATE service_calls SET
                  received_date = :received_date,
@@ -407,7 +419,8 @@ class ServiceCall
                  assigned_tech = :assigned_tech,
                  status = :status,
                  updated_at = :updated_at
-             WHERE id = :id'
+                         WHERE id = :id
+                             AND updated_at = :expected_updated_at'
         );
         $stmt->execute([
             ':received_date' => $receivedDate,
@@ -423,7 +436,22 @@ class ServiceCall
             ':status' => $data['status'],
             ':updated_at' => $now,
             ':id' => $id,
+            ':expected_updated_at' => $expectedVersion,
         ]);
+
+        if ($stmt->rowCount() === 0) {
+            $latestCall = self::findById($id);
+            if ($latestCall === null) {
+                throw new InvalidArgumentException('The selected job could not be found.');
+            }
+
+            $latestVersion = self::normalizeExpectedUpdatedAt((string)($latestCall['updated_at'] ?? ''), '');
+            if ($latestVersion !== $expectedVersion) {
+                throw new InvalidArgumentException('This service call was updated by another user. Reload and apply your changes again.');
+            }
+
+            return $id;
+        }
 
         ReusableRecord::syncFromServiceCall($data);
 
@@ -492,7 +520,7 @@ class ServiceCall
         return $count;
     }
 
-    public static function claimForTechnician(int $serviceCallId, int $technicianId, array $actor): void
+    public static function claimForTechnician(int $serviceCallId, int $technicianId, array $actor, ?string $expectedUpdatedAt = null): void
     {
         if ($technicianId <= 0) {
             throw new InvalidArgumentException('Your account must be linked to a technician profile before claiming jobs.');
@@ -510,10 +538,10 @@ class ServiceCall
         $data['assigned_tech'] = $technicianId;
         $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), 'claimed this job', $actor);
 
-        self::save($data, $serviceCallId, $actor);
+        self::save($data, $serviceCallId, $actor, $expectedUpdatedAt ?? (string)($call['updated_at'] ?? ''));
     }
 
-    public static function updateAssignedTechnicianJob(int $serviceCallId, int $technicianId, string $status, string $technicianNote, array $actor): void
+    public static function updateAssignedTechnicianJob(int $serviceCallId, int $technicianId, string $status, string $technicianNote, array $actor, ?string $expectedUpdatedAt = null): void
     {
         if (!in_array($status, self::getStatusOptions(), true)) {
             throw new InvalidArgumentException('Invalid status selected.');
@@ -533,7 +561,7 @@ class ServiceCall
             $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), $technicianNote, $actor);
         }
 
-        self::save($data, $serviceCallId, $actor);
+        self::save($data, $serviceCallId, $actor, $expectedUpdatedAt ?? (string)($call['updated_at'] ?? ''));
     }
 
     public static function delete(int $serviceCallId, array $actor): string
@@ -765,6 +793,23 @@ class ServiceCall
         $prefix = (string)($actor['display_name'] ?? $actor['username'] ?? 'Technician');
         $entry = "[{$timestamp}] {$prefix}: {$note}";
         return trim($existingNotes === '' ? $entry : $existingNotes . "\n\n" . $entry);
+    }
+
+    private static function normalizeExpectedUpdatedAt(?string $value, string $fallback): ?string
+    {
+        $candidate = trim((string)$value);
+        if ($candidate === '') {
+            $candidate = trim($fallback);
+        }
+        if ($candidate === '') {
+            return null;
+        }
+
+        try {
+            return (new DateTime($candidate))->format('Y-m-d H:i:s');
+        } catch (Exception $exception) {
+            return null;
+        }
     }
 
     private static function generateJobNumber(string $receivedDate): string

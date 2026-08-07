@@ -136,6 +136,7 @@
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="update_job">
                                 <input type="hidden" name="call_id" value="<?= escape((string)$job['id']) ?>">
+                                <input type="hidden" name="expected_updated_at" value="<?= escape((string)($job['updated_at'] ?? '')) ?>">
                                 <div class="col-md-4">
                                     <label class="form-label" for="status_<?= escape((string)$job['id']) ?>">Status</label>
                                     <select class="form-select" id="status_<?= escape((string)$job['id']) ?>" name="status">
@@ -240,6 +241,7 @@
                                         <?= csrf_field() ?>
                                         <input type="hidden" name="action" value="claim_job">
                                         <input type="hidden" name="call_id" value="<?= escape((string)$job['id']) ?>">
+                                        <input type="hidden" name="expected_updated_at" value="<?= escape((string)($job['updated_at'] ?? '')) ?>">
                                         <button type="submit" class="btn btn-success">Claim Job</button>
                                     </form>
                                 <?php endif; ?>

@@ -29,16 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = trim($_POST['action'] ?? '');
         $callId = (int)($_POST['call_id'] ?? 0);
+        $expectedUpdatedAt = trim((string)($_POST['expected_updated_at'] ?? ''));
 
         try {
             if ($action === 'claim_job') {
-                ServiceCall::claimForTechnician($callId, $technicianId, $user);
+                ServiceCall::claimForTechnician($callId, $technicianId, $user, $expectedUpdatedAt);
                 header('Location: ' . url('public/technician_dashboard.php?notice=claimed'));
                 exit;
             } elseif ($action === 'update_job') {
                 $status = trim($_POST['status'] ?? '');
                 $note = trim($_POST['technician_note'] ?? '');
-                ServiceCall::updateAssignedTechnicianJob($callId, $technicianId, $status, $note, $user);
+                ServiceCall::updateAssignedTechnicianJob($callId, $technicianId, $status, $note, $user, $expectedUpdatedAt);
                 header('Location: ' . url('public/technician_dashboard.php?notice=updated'));
                 exit;
             } else {
