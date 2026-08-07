@@ -430,7 +430,15 @@ SQL
             'temporary_password' => $temporaryPassword,
         ];
     } catch (PDOException $exception) {
-        return ['error' => 'Installation failed: ' . $exception->getMessage()];
+        Logger::error('Installer run failed', [
+            'db_host' => (string)($setup['db_host'] ?? ''),
+            'db_name' => (string)($setup['db_name'] ?? ''),
+            'db_user' => (string)($setup['db_user'] ?? ''),
+            'exception_code' => (string)$exception->getCode(),
+            'exception' => $exception->getMessage(),
+        ]);
+
+        return ['error' => 'Installation failed due to a server/database error. Please verify settings and check application logs for details.'];
     }
 }
 ?>
