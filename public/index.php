@@ -12,6 +12,15 @@ Auth::requireLogin();
 $user = Auth::currentUser();
 $search = trim($_GET['search'] ?? '');
 $filter = trim($_GET['filter'] ?? 'incomplete');
+$allowedPerPage = [25, 50, 100, 250];
+$perPage = (int)($_GET['per_page'] ?? 50);
+if (!in_array($perPage, $allowedPerPage, true)) {
+    $perPage = 50;
+}
+$page = (int)($_GET['page'] ?? 1);
+if ($page < 1) {
+    $page = 1;
+}
 $errors = [];
 $success = trim((string)($_SESSION['success_message'] ?? ''));
 unset($_SESSION['success_message']);
@@ -140,7 +149,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($search !== '' || $filter !== 'inc
     $_SESSION['recent_call_views'] = $recentSearches;
 }
 
-$calls = ServiceCall::findAll($search, $filter);
+$totalCalls = ServiceCall::countAll($search, $filter);
+$totalPages = max(1, (int)ceil($totalCalls / $perPage));
+if ($page > $totalPages) {
+    $page = $totalPages;
+}
+$offset = ($page - 1) * $perPage;
+
+$calls = ServiceCall::findAll($search, $filter, $perPage, $offset);
 $stats = ServiceCall::getSummaryStats();
 $technicians = Technician::findAllActive();
 $savedViews = SavedView::listVisibleForUser($user, 'calls');
@@ -151,6 +167,11 @@ Template::render('pages/index', [
     'search' => $search,
     'filter' => $filter,
     'calls' => $calls,
+    'page' => $page,
+    'perPage' => $perPage,
+    'allowedPerPage' => $allowedPerPage,
+    'totalCalls' => $totalCalls,
+    'totalPages' => $totalPages,
     'stats' => $stats,
     'technicians' => $technicians,
     'savedViews' => $savedViews,
