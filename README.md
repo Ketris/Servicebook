@@ -1,47 +1,89 @@
-# Servicebook Phase 1
+# Servicebook
 
-A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanilla JavaScript.
+Servicebook is a lightweight internal service-call application for office staff, administrators, and technicians.
 
-## Setup
+It is designed to replace a handwritten dispatch notebook while preserving speed, simplicity, and reliability.
 
-1. Open `install.php` in your browser.
-2. Enter SQL server address, database name/login credentials, and initial site title.
-3. Review the installer summary and explicitly confirm before setup runs.
-4. The installer detects existing installations and lets you either continue to login or rerun setup to verify/update configuration.
-5. Visit `public/login.php` and sign in with:
-   - Username: `admin`
-   - Temporary password shown by the installer after first setup.
+## Current Status
 
-## Notes
+Current as of 2026-08-07.
 
-- The installer creates the initial admin user automatically and shows a one-time temporary password on first run.
-- Apache hardening rules are included in the project-root `.htaccess` to block direct web access to sensitive directories (for hosts where DocumentRoot cannot be pointed at `public/`).
-- Uploaded branding files are protected with Apache rules that disable script execution in `public/assets/branding/`.
-- Recommended deployment remains setting Apache DocumentRoot to `public/` when possible.
-- Login attempts are rate-limited per user and lock for 15 minutes after repeated failures.
-- CSRF protection is enforced on form submissions in public and admin pages.
-- Session cookies are set with HttpOnly, SameSite=Lax, and an HTTPS-aware Secure flag; strict session mode is enabled.
-- Administrators can clear lockouts and trigger temporary password resets from User Management.
-- User management enforces server-side role validation, requires a linked technician profile for Technician accounts, and enforces a 10-character minimum password.
-- Installer connection errors show a sanitized message to the browser; full exception details are logged server-side only.
-- Application events and errors are logged to `storage/logs/app-YYYY-MM-DD.log` with daily rotation.
-- Log retention keeps the most recent 60 days of daily logs and prunes older files automatically.
-- Database backups are stored as compressed `.json.gz` snapshots in `storage/backups/`.
-- Backup storage is protected with `.htaccess` deny rules.
-- Administrators can configure automatic backup cadence and retention in System Settings.
-- Administrators can create, download, and restore backups from stored files or uploaded compressed backup files.
-- Technician users land on a dedicated My Jobs dashboard after login, with quick status updates and claim actions for unassigned work.
-- Main call list supports quick filters for open, unassigned, closed today, and closed this week.
-- Edit call view shows Last Modified timestamp and actor.
-- Administration includes an Activity Log page with pagination and filters (query, actor, event type, field, date range).
-- Activity history includes both service-call changes and system-level admin events.
-- CSV and print exports are available for call lists, search results, technician queues, and activity history.
-- Saved views and recent views are available on the call list page.
-- Bulk call updates support status and technician assignment changes.
-- Reusable customer/location records with autocomplete and merge tools are available in Admin.
-- Status options include `Complete` and `Cancelled` as closed states.
-- Priority is not used in this build.
-- Administrators can upload or remove a title image logo in System Settings; when present, the logo replaces the text site title.
-- Job numbers are generated sequentially and cannot be edited.
-- The main page shows open calls by default.
-- The application uses prepared statements and password hashing.
+Implemented highlights:
+- Service call intake, editing, assignment, and status workflow
+- Role-based access for Administrator, Office Staff, and Technician
+- Technician dashboard with quick updates and claim actions for unassigned work
+- Open/unassigned/closed filters and dedicated search
+- Pagination on call list, search, and activity history
+- Saved views, recent views, bulk updates, CSV export, and print views
+- Reusable customer and location records with admin merge/edit tools
+- Activity logging for call-level changes and system-level admin actions
+- Authentication hardening (CSRF, rate limiting/lockouts, session hardening)
+- Installer hardening with sanitized user-facing errors
+- Daily application log rotation with retention pruning
+- Backup and restore system with:
+  - automatic cadence (daily, weekly, monthly)
+  - retention policy
+  - manual backup creation
+  - backup download
+  - restore from stored backup
+  - restore from uploaded compressed backup
+
+## Stack
+
+- PHP 8.x
+- MySQL
+- PDO (prepared statements)
+- Bootstrap 5
+- Vanilla JavaScript
+- Apache
+
+## Quick Start
+
+1. Configure Apache to serve this project.
+2. Prefer setting DocumentRoot to the public directory.
+3. Open install.php in your browser.
+4. Enter database connection details and site title.
+5. Complete setup and sign in at public/login.php.
+6. Save the temporary admin password shown at install time.
+
+## Security and Operations Notes
+
+- If DocumentRoot cannot be set to public, root .htaccess includes protection rules for sensitive paths.
+- Branding uploads are restricted by file type and size and protected from script execution.
+- Backup storage is protected by storage/backups/.htaccess deny rules.
+- Session cookies use HttpOnly, SameSite=Lax, and HTTPS-aware Secure behavior.
+- Login lockout is enforced after repeated failures.
+- Installer and runtime errors shown to users are sanitized; details are logged server-side.
+
+## Backup and Restore
+
+Backups are stored as compressed JSON files in storage/backups with file names like:
+- backup-YYYYMMDD-HHMMSS-manual.json.gz
+- backup-YYYYMMDD-HHMMSS-auto.json.gz
+
+Admin settings allow:
+- enabling/disabling automatic backups
+- cadence selection (daily/weekly/monthly)
+- retention in days
+- one-click manual backups
+- restore from stored backups
+- restore from uploaded .json.gz backups
+
+## Repository Notes
+
+- Generated logs are ignored by git.
+- Generated backup artifacts are ignored by git.
+- The protection file storage/backups/.htaccess remains tracked.
+
+## Project Structure
+
+- public/: user-facing routes (login, calls, search, technician dashboard)
+- admin/: admin routes (users, technicians, records, settings, activity)
+- src/: core classes (auth, database, models, backup manager, logging, helpers)
+- templates/: layouts and page templates
+- storage/: logs and backups
+
+## Next Documentation
+
+- Current implementation direction: FUTURE_PLANS.md
+- Current functional baseline: PROJECT_SPEC.md

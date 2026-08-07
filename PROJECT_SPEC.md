@@ -1,550 +1,168 @@
-# Service Call Manager
-
-### Phase 1 Functional Specification
-
-Version 1.1
-
-## Current Implementation Snapshot (2026-07-21)
-
-The following are implemented in the current build:
-
-* CSV and print exports for calls, search, technician queue, and activity.
-* Saved views, role defaults, and recent-view shortcuts on the call list.
-* Bulk call updates (status and assignment).
-* Reusable customer/location records with admin merge/update tools.
-* Technician dashboard with claim actions, quick updates, and team availability.
-* Activity log pagination and filtering (search, actor, event type, field, date range).
-* System-level admin events in activity history.
-
-Notable current behavior:
-
-* Status includes `Cancelled` as a closed state.
-* Priority is not used.
-
-## Project Goal
-
-The purpose of this project is **not** to create a complete field service management system.
-
-The objective of Phase 1 is simply to replace an existing handwritten service-call book with a lightweight web application accessible from desktops inside the office and tablets used by office staff.
-
-The application should prioritize:
-
-* simplicity
-* speed
-* reliability
-* minimal clicks
-* responsive design
-* ease of future expansion
-
-The workflow should closely resemble the existing paper notebook while adding searchability and preventing duplicate information.
-
----
-
-# Technology Stack
-
-Backend
-
-* PHP 8.x
-* MySQL
-* PDO (prepared statements only)
-
-Frontend
-
-* Bootstrap 5
-* Vanilla JavaScript
-* HTML5
-
-Authentication
-
-* PHP Sessions
-* Password hashing using password_hash()
-
-Deployment
-
-* Apache
-* Internal network only (internet access may be added later)
-
----
-
-# Design Philosophy
-
-The software should feel like an office tool rather than enterprise software.
-
-Avoid:
-
-* unnecessary animations
-* dashboards full of widgets
-* excessive menus
-* complicated workflows
-
-Every common task should require as few clicks as possible.
-
----
-
-# Primary Workflow
-
-Incoming service call
-
-↓
-
-Office employee creates new service call
-
-↓
-
-Assign technician
-
-↓
-
-Update status throughout day
-
-↓
-
-Mark complete or cancel
-
-Nothing more is required for Phase 1.
-
----
-
-# User Roles
-
-## Office Staff
-
-Can
-
-* Create calls
-* Edit calls
-* Search calls
-* Assign technicians
-* Add notes
-* Change status
-* View all calls
-
----
-
-## Administrator
-
-Everything Office Staff can do plus
-
-* Manage users
-* Manage technicians
-* Manage customers
-* Manage locations
-* System configuration
-
----
-
-# Service Call Fields
-
-Each service call contains:
-
-## Required
-
-Job Number
-
-Auto-generated integer.
-
-Example
-
-24017
-
----
-
-Date/Time Received
-
-Automatically filled.
-
-Editable.
-
----
-
-Customer Name
-
-Free text for Phase 1.
-
-(Customer database comes later.)
-
----
-
-Location
-
-Free text.
-
-Usually city or wash name.
-
----
-
-Reported Issue
-
-Multi-line text.
-
-Should allow several paragraphs.
-
----
-
-Assigned Technician
-
-Dropdown.
-
----
-
-Status
-
-Dropdown.
-
-Values
-
-* New
-* Dispatched
-* In Progress
-* Waiting Parts
-* On Hold
-* Complete
-* Cancelled
-
-Default
-
-New
-
----
-
-## Optional
-
-Customer PO Number
-
-Text
-
----
-
-Customer Contact
-
-Text
-
----
-
-Phone Number
-
-Text
-
----
-
-Email
-
-Text
-
----
-
-Internal Notes
-
-Long text.
-
-Office only.
-
----
-
-# Main Screen
-
-The home page should immediately display open service calls.
-
-Columns
-
-Job #
-
-Received
-
-Customer
-
-Location
-
-Technician
-
-Status
-
-Reported Issue (truncated)
-
-PO Number
-
-Each row should be clickable.
-
-Clicking opens the complete job.
-
----
-
-Toolbar
-
-Top of page
-
-Buttons
-
-New Call
-
-Search
-
-Open Calls
-
-Closed Today
-
-Closed This Week
-
-Administration
-
-Logout
-
----
-
-# New Call Page
-
-Large simple form.
-
-Tab order should be logical.
-
-The cursor should start in Customer Name.
-
-Save button should return to the main list.
-
-Cancel returns without saving.
-
----
-
-# Edit Call Page
-
-Allow modification of every field.
-
-Display:
-
-Created Date
-
-Last Modified
-
-Created By
-
-Last Modified By
-
-Eventually these become part of an audit log.
-
----
-
-# Search
-
-Simple search box.
-
-Searches:
-
-* Job Number
-* Customer
-* Location
-* PO Number
-* Reported Issue
-
-Results displayed in the same table format.
-
----
-
-# Technician Management
-
-Simple table.
-
-Fields
-
-Name
-
-Phone
-
-Active
-
-Inactive technicians remain in history.
-
----
-
-# User Management
-
-Fields
-
-Username
-
-Display Name
-
-Password
-
-Role
-
-Active
-
-Roles
-
-Administrator
-
-Office Staff
-
-Passwords must never be stored in plain text.
-
----
-
-# Job Number Generation
-
-Job numbers should auto-increment.
-
-Never reused.
-
-Never editable.
-
----
-
-# Database Tables
-
-users
-
-```
-id
-username
-password_hash
-display_name
-role
-active
-created_at
-```
-
-technicians
-
-```
-id
-name
-phone
-active
-created_at
-```
-
-service_calls
-
-```
-id
-job_number
-received_date
-customer
-location
-contact
-phone
-email
-po_number
-reported_issue
-internal_notes
-assigned_tech
-status
-created_by
-created_at
-updated_at
-```
-
----
-
-# Validation Rules
-
-Customer
-
-Required
-
-Location
-
-Required
-
-Reported Issue
-
-Required
-
-Technician
-
-Optional
-
-PO
-
-Optional
-
-Status
-
-Must be one of allowed values.
-
----
-
-
-# Future Compatibility
-
-Although not implemented in Phase 1, the database should be designed so the following can be added without major restructuring:
-
-* Customer database
-* Multiple locations per customer
-* Equipment database
-* Work order printing
-* Technician mobile interface
-* Attachments
-* Photos
-* Email notifications
-* SMS notifications
-* Parts tracking
-* Invoice integration
-* Advanced audit analytics and retention controls
-* Calendar view
-* Dispatch board
-* GPS location
-* Time tracking
-* Service history
-* Customer portal
-
----
-
-# Coding Standards
-
-Use:
-
-* prepared SQL statements only
-* object-oriented PHP where appropriate
-* reusable components
-* separate business logic from HTML
-* descriptive variable names
-* Bootstrap utility classes
-* comments explaining business logic instead of obvious code
-
-Never:
-
-* concatenate SQL strings
-* duplicate code unnecessarily
-* hardcode HTML repeatedly
-* trust user input
-* expose SQL errors to users
-
----
-
-# UI Principles
-
-The interface should feel similar to using a paper service book.
-
-Requirements
-
-* Large readable fonts
-* Tablet-friendly controls
-* Responsive layout
-* Minimal scrolling
-* Fast page loads
-* High contrast
-* Easy to use while answering the phone
-
----
-
-# Out of Scope (Phase 1)
-
-Do **not** implement:
-
-* Customer accounts
-* Equipment inventory
-* Billing
-* Invoicing
-* Inventory management
-* Technician GPS
-* Scheduling
-* Calendar views
-* Route optimization
-* Push notifications
-* External APIs
-* Mobile apps
-* Cloud hosting
-* Offline synchronization
-
-The focus of Phase 1 is solely replacing the handwritten service-call book with a clean, reliable web application.
+# Servicebook Functional Baseline
+
+Version 2.0
+Last updated: 2026-08-07
+
+## Purpose
+
+Servicebook is an internal web application that replaces a handwritten service-call notebook.
+
+Primary goals:
+- fast call intake
+- easy assignment and status updates
+- clear visibility for office staff and technicians
+- low-friction administration
+- secure and reliable daily operation
+
+This project is intentionally not a full enterprise field-service platform.
+
+## Technology
+
+Backend:
+- PHP 8.x
+- MySQL
+- PDO with prepared statements
+
+Frontend:
+- Bootstrap 5
+- Vanilla JavaScript
+
+Deployment:
+- Apache
+- Internal network by default
+
+## User Roles
+
+Administrator:
+- full access
+- user management
+- technician management
+- reusable records management
+- system settings and backup/restore controls
+- activity oversight
+
+Office Staff:
+- create/edit/search service calls
+- assign technicians
+- update status
+- use saved views, exports, and bulk actions
+
+Technician:
+- view assigned and unassigned eligible work
+- claim unassigned jobs
+- perform quick status updates from dashboard and edit screens
+
+## Core Workflow
+
+1. Office receives call and creates a service call.
+2. Office assigns technician and updates status over time.
+3. Technician updates/claims work as needed.
+4. Call is closed as Complete or Cancelled.
+
+## Service Call Data
+
+Required:
+- job number (auto-generated, non-editable)
+- received date
+- customer
+- location
+- reported issue
+- status
+
+Optional:
+- assigned technician
+- PO number
+- contact
+- phone
+- email
+- internal notes
+
+Status values:
+- New
+- Dispatched
+- In Progress
+- Waiting Parts
+- On Hold
+- Complete
+- Cancelled
+
+## Implemented Features
+
+Call management:
+- create/edit calls
+- optimistic concurrency guard for updates
+- server-side pagination on list and search
+- open/unassigned/closed quick filters
+- dedicated search page
+
+Productivity:
+- saved views
+- recent views
+- bulk status/assignment updates
+- CSV export and print-friendly views for key screens
+
+Technician workflow:
+- technician dashboard
+- quick status updates
+- claim action for unassigned calls
+
+Records:
+- reusable customer records
+- reusable location records
+- merge/edit admin tooling
+- call form autocomplete support
+
+Administration:
+- user management with role validation
+- technician role requires linked technician record
+- temporary password reset and lockout clearing
+- technician management
+- settings for site title and branding image
+
+Security:
+- CSRF protection
+- password hashing
+- login failure counters and lockout window
+- hardened session cookie behavior
+- sanitized installer/runtime user-facing errors
+- protected directories via .htaccess where needed
+
+Audit and logging:
+- call change history
+- system-level admin events
+- activity filtering and pagination
+- daily application log rotation with retention pruning
+
+Backup and restore:
+- compressed JSON snapshot backups (.json.gz)
+- automatic backups by cadence (daily/weekly/monthly)
+- retention-day pruning
+- manual backup creation
+- backup download
+- restore from stored backup
+- restore from uploaded backup file
+
+## Operational Constraints
+
+- Internal deployment model is primary.
+- Scheduling/calendar workflows remain out of scope unless business need changes.
+- Priority field is not in active use.
+- Keep UX focused on speed and minimal clicks.
+
+## Non-Goals (Current Phase)
+
+- invoicing and billing
+- inventory management
+- route optimization and GPS tracking
+- external customer portal
+- public API surface
+- native mobile app
+- cloud-first architecture
+
+## Quality Bar
+
+- prepared statements only for SQL
+- no raw SQL error exposure to end users
+- business logic separated from templates/controllers where practical
+- role and input validation enforced server-side
+- maintainable incremental changes over heavy rewrites
