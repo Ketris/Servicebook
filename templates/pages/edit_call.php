@@ -154,8 +154,8 @@ $initialLocationNames = $selectedCustomerKey !== ''
             <div class="card border-0 shadow-sm mt-4">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <div>
-                        <h2 class="h6 mb-0">Prior Calls For This Customer Or Location</h2>
-                        <div class="small text-muted">Recent jobs that share the same customer name or location.</div>
+                        <h2 class="h6 mb-0">Prior Calls For This Location</h2>
+                        <div class="small text-muted">Recent jobs that share the same location.</div>
                     </div>
                     <span class="badge text-bg-light"><?= count($relatedCalls) ?></span>
                 </div>
