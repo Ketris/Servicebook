@@ -1,5 +1,5 @@
 <?php
-// Database configuration for local installation. Update these values for your environment.
+// Copy this file to config.php and update values for your environment.
 $appTimezone = 'America/Chicago';
 date_default_timezone_set($appTimezone);
 

@@ -2,3 +2,4 @@
 /storage/backups/*
 !/storage/backups/.htaccess
 /public/assets/branding/*
+/src/config.php
