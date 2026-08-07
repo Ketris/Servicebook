@@ -18,7 +18,7 @@ class Installation
     {
         try {
             Database::getConnection();
-            return !Database::hasRequiredSchema();
+            return false;
         } catch (\PDOException $exception) {
             if (Database::isInstallationMissingException($exception)) {
                 return true;
