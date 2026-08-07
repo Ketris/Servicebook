@@ -20,58 +20,44 @@ class ServiceCall
         ];
     }
 
-    public static function findAll(?string $search = null, ?string $statusFilter = 'all'): array
+    public static function findAll(?string $search = null, ?string $statusFilter = 'all', ?int $limit = null, int $offset = 0): array
     {
         $pdo = Database::getConnection();
-        $baseQuery = 'SELECT sc.*, t.name AS assigned_tech_name FROM service_calls sc
+        [$conditions, $params] = self::buildCallListConditions($search, $statusFilter);
+
+        $query = 'SELECT sc.*, t.name AS assigned_tech_name FROM service_calls sc
             LEFT JOIN technicians t ON sc.assigned_tech = t.id';
-        $conditions = [];
-        $params = [];
-
-        $statusFilter = trim((string)$statusFilter);
-
-        if ($statusFilter === 'open') {
-            $conditions[] = self::notClosedStatusesSql('sc.status');
-        } elseif ($statusFilter === 'complete') {
-            $conditions[] = self::closedStatusesSql('sc.status');
-        } elseif ($statusFilter === 'completed_today') {
-            $conditions[] = self::closedStatusesSql('sc.status');
-            $conditions[] = 'DATE(sc.updated_at) = CURDATE()';
-        } elseif ($statusFilter === 'completed_week') {
-            $conditions[] = self::closedStatusesSql('sc.status');
-            $conditions[] = 'YEARWEEK(sc.updated_at, 1) = YEARWEEK(CURDATE(), 1)';
-        } elseif ($statusFilter === 'incomplete') {
-            $conditions[] = self::notClosedStatusesSql('sc.status');
-        } elseif ($statusFilter === 'unassigned') {
-            $conditions[] = 'sc.assigned_tech IS NULL';
-            $conditions[] = self::notClosedStatusesSql('sc.status');
-        } elseif (in_array($statusFilter, self::getStatusOptions(), true)) {
-            $conditions[] = 'sc.status = :status';
-            $params[':status'] = $statusFilter;
-        }
-
-        if ($search !== null && trim($search) !== '') {
-            $term = '%' . strtolower(trim($search)) . '%';
-            $conditions[] = '(LOWER(CONCAT(
-                COALESCE(sc.job_number, ""), " ",
-                COALESCE(sc.customer, ""), " ",
-                COALESCE(sc.location, ""), " ",
-                COALESCE(sc.po_number, ""), " ",
-                COALESCE(sc.reported_issue, "")
-            )) LIKE :term)';
-            $params[':term'] = $term;
-        }
-
-        $query = $baseQuery;
         if (!empty($conditions)) {
             $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
         $query .= ' ORDER BY sc.received_date DESC, sc.job_number DESC';
+        if ($limit !== null) {
+            $safeLimit = max(1, min($limit, 500));
+            $safeOffset = max(0, $offset);
+            $query .= ' LIMIT ' . $safeLimit . ' OFFSET ' . $safeOffset;
+        }
 
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
         return $stmt->fetchAll();
+    }
+
+    public static function countAll(?string $search = null, ?string $statusFilter = 'all'): int
+    {
+        [$conditions, $params] = self::buildCallListConditions($search, $statusFilter);
+
+        $query = 'SELECT COUNT(*) AS call_count FROM service_calls sc';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return (int)($row['call_count'] ?? 0);
     }
 
     public static function getSummaryStats(): array
@@ -782,6 +768,48 @@ class ServiceCall
                 COALESCE(h.note, "")
             )) LIKE :activity_query';
             $params[':activity_query'] = '%' . strtolower($query) . '%';
+        }
+
+        return [$conditions, $params];
+    }
+
+    private static function buildCallListConditions(?string $search, ?string $statusFilter): array
+    {
+        $conditions = [];
+        $params = [];
+
+        $statusFilter = trim((string)$statusFilter);
+
+        if ($statusFilter === 'open') {
+            $conditions[] = self::notClosedStatusesSql('sc.status');
+        } elseif ($statusFilter === 'complete') {
+            $conditions[] = self::closedStatusesSql('sc.status');
+        } elseif ($statusFilter === 'completed_today') {
+            $conditions[] = self::closedStatusesSql('sc.status');
+            $conditions[] = 'DATE(sc.updated_at) = CURDATE()';
+        } elseif ($statusFilter === 'completed_week') {
+            $conditions[] = self::closedStatusesSql('sc.status');
+            $conditions[] = 'YEARWEEK(sc.updated_at, 1) = YEARWEEK(CURDATE(), 1)';
+        } elseif ($statusFilter === 'incomplete') {
+            $conditions[] = self::notClosedStatusesSql('sc.status');
+        } elseif ($statusFilter === 'unassigned') {
+            $conditions[] = 'sc.assigned_tech IS NULL';
+            $conditions[] = self::notClosedStatusesSql('sc.status');
+        } elseif (in_array($statusFilter, self::getStatusOptions(), true)) {
+            $conditions[] = 'sc.status = :status';
+            $params[':status'] = $statusFilter;
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $term = '%' . strtolower(trim($search)) . '%';
+            $conditions[] = '(LOWER(CONCAT(
+                COALESCE(sc.job_number, ""), " ",
+                COALESCE(sc.customer, ""), " ",
+                COALESCE(sc.location, ""), " ",
+                COALESCE(sc.po_number, ""), " ",
+                COALESCE(sc.reported_issue, "")
+            )) LIKE :term)';
+            $params[':term'] = $term;
         }
 
         return [$conditions, $params];

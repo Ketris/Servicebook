@@ -31,6 +31,9 @@
     </div>
     <form class="d-flex flex-wrap gap-2 align-items-center" method="get" action="<?= url('public/index.php') ?>">
         <input class="form-control" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
+        <?php if ($selectedViewId > 0): ?>
+            <input type="hidden" name="saved_view" value="<?= escape((string)$selectedViewId) ?>">
+        <?php endif; ?>
         <div class="d-flex align-items-center gap-2">
             <label class="small text-muted mb-0" for="status-filter">Filter</label>
             <select class="form-select form-select-sm w-auto" id="status-filter" name="filter">
@@ -39,6 +42,14 @@
                 <option value="completed_today" <?= $filter === 'completed_today' ? 'selected' : '' ?>>Closed Today</option>
                 <option value="completed_week" <?= $filter === 'completed_week' ? 'selected' : '' ?>>Closed This Week</option>
                 <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
+            </select>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0" for="per-page">Rows</label>
+            <select class="form-select form-select-sm w-auto" id="per-page" name="per_page">
+                <?php foreach (($allowedPerPage ?? [25, 50, 100, 250]) as $size): ?>
+                    <option value="<?= escape((string)$size) ?>" <?= (int)$perPage === (int)$size ? 'selected' : '' ?>><?= escape((string)$size) ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
         <button class="btn btn-primary" type="submit">Search</button>
@@ -128,7 +139,14 @@ $filterLabel = $filter === 'all' ? 'all' : (
             </ul>
         </div>
         <small class="text-muted mb-0">Click headers to sort. Drag the right edge to resize.</small>
-        <span id="call-count" class="badge rounded-pill text-bg-light border">Showing <?= count($calls) ?> calls</span>
+        <?php
+        $currentCount = count($calls);
+        $pageStart = $currentCount > 0 ? ((($page - 1) * $perPage) + 1) : 0;
+        $pageEnd = $currentCount > 0 ? ($pageStart + $currentCount - 1) : 0;
+        ?>
+        <span id="call-count" class="badge rounded-pill text-bg-light border">
+            Showing <?= escape((string)$pageStart) ?>-<?= escape((string)$pageEnd) ?> of <?= escape((string)($totalCalls ?? $currentCount)) ?> calls
+        </span>
         <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences">↺</button>
     </div>
 </div>
@@ -220,6 +238,31 @@ $filterLabel = $filter === 'all' ? 'all' : (
             </tbody>
         </table>
     <?php endif; ?>
+</div>
+<?php
+$indexQueryBase = [
+    'search' => $search,
+    'filter' => $filter,
+    'per_page' => $perPage,
+];
+if ($selectedViewId > 0) {
+    $indexQueryBase['saved_view'] = $selectedViewId;
+}
+?>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-3">
+    <div class="small text-muted">
+        Page <?= escape((string)$page) ?> of <?= escape((string)$totalPages) ?>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <?php
+        $prevParams = $indexQueryBase;
+        $prevParams['page'] = max(1, $page - 1);
+        $nextParams = $indexQueryBase;
+        $nextParams['page'] = min($totalPages, $page + 1);
+        ?>
+        <a class="btn btn-sm btn-outline-secondary <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : escape(url('public/index.php?' . http_build_query($prevParams))) ?>">Previous</a>
+        <a class="btn btn-sm btn-outline-secondary <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : escape(url('public/index.php?' . http_build_query($nextParams))) ?>">Next</a>
+    </div>
 </div>
 <?php if (($user['role'] ?? '') !== 'Technician'): ?>
     <div class="card border-0 shadow-sm mt-3">

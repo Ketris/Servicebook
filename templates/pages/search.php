@@ -20,8 +20,35 @@
         <a class="btn btn-outline-secondary" target="_blank" rel="noopener" href="<?= escape($searchPrintUrl) ?>">Print View</a>
         <form class="d-flex" method="get" action="<?= url('public/search.php') ?>">
             <input class="form-control me-2" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
+            <select class="form-select me-2" name="per_page" style="max-width: 110px;">
+                <?php foreach (($allowedPerPage ?? [25, 50, 100, 250]) as $size): ?>
+                    <option value="<?= escape((string)$size) ?>" <?= (int)$perPage === (int)$size ? 'selected' : '' ?>><?= escape((string)$size) ?>/page</option>
+                <?php endforeach; ?>
+            </select>
             <button class="btn btn-primary" type="submit">Search</button>
         </form>
+    </div>
+</div>
+<?php
+$searchCurrentCount = count($calls);
+$searchStart = $searchCurrentCount > 0 ? ((($page - 1) * $perPage) + 1) : 0;
+$searchEnd = $searchCurrentCount > 0 ? ($searchStart + $searchCurrentCount - 1) : 0;
+$searchQueryBase = [
+    'search' => $search,
+    'per_page' => $perPage,
+];
+?>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="small text-muted">Showing <?= escape((string)$searchStart) ?>-<?= escape((string)$searchEnd) ?> of <?= escape((string)($totalCalls ?? $searchCurrentCount)) ?> results</div>
+    <div class="d-flex align-items-center gap-2">
+        <?php
+        $searchPrevParams = $searchQueryBase;
+        $searchPrevParams['page'] = max(1, $page - 1);
+        $searchNextParams = $searchQueryBase;
+        $searchNextParams['page'] = min($totalPages, $page + 1);
+        ?>
+        <a class="btn btn-sm btn-outline-secondary <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : escape(url('public/search.php?' . http_build_query($searchPrevParams))) ?>">Previous</a>
+        <a class="btn btn-sm btn-outline-secondary <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : escape(url('public/search.php?' . http_build_query($searchNextParams))) ?>">Next</a>
     </div>
 </div>
 <div class="table-responsive">
