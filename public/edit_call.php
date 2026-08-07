@@ -42,6 +42,7 @@ $values = [
     'assigned_tech' => $call['assigned_tech'],
     'status' => $call['status'],
     'technician_note' => '',
+    'expected_updated_at' => (string)($call['updated_at'] ?? $call['created_at'] ?? ''),
 ];
 $history = ServiceCall::findHistory($id);
 $relatedCalls = ServiceCall::findRelatedCalls($id, $call['customer'] ?? null, $call['location'] ?? null);
@@ -50,6 +51,8 @@ $lastModifiedBy = !empty($history) ? ($history[0]['changed_by_name'] ?? 'System'
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['action'] ?? 'save_call'));
+    $expectedUpdatedAt = trim((string)($_POST['expected_updated_at'] ?? ($call['updated_at'] ?? $call['created_at'] ?? '')));
+    $values['expected_updated_at'] = $expectedUpdatedAt;
 
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';
@@ -88,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['claim_job'] = 'This job cannot be claimed right now.';
             } else {
                 try {
-                    ServiceCall::claimForTechnician($id, (int)($user['technician_id'] ?? 0), $user);
+                    ServiceCall::claimForTechnician($id, (int)($user['technician_id'] ?? 0), $user, $expectedUpdatedAt);
                     header('Location: ' . url('public/technician_dashboard.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {
@@ -118,7 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         (int)($user['technician_id'] ?? 0),
                         $values['status'],
                         $values['technician_note'],
-                        $user
+                        $user,
+                        $expectedUpdatedAt
                     );
                     header('Location: ' . url('public/technician_dashboard.php'));
                     exit;
@@ -189,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['created_by'] = $call['created_by'];
                 $data['assigned_tech'] = $data['assigned_tech'] ?: null;
                 try {
-                    ServiceCall::save($data, $id, $user);
+                    ServiceCall::save($data, $id, $user, $expectedUpdatedAt);
                     header('Location: ' . url('public/index.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {

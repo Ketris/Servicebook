@@ -32,6 +32,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
         <?php endif; ?>
         <form method="post" novalidate>
             <?= csrf_field() ?>
+            <input type="hidden" name="expected_updated_at" value="<?= escape((string)($values['expected_updated_at'] ?? '')) ?>">
             <?php if (isset($errors['form'])): ?>
                 <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
             <?php endif; ?>
