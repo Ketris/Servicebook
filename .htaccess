@@ -1,0 +1,18 @@
+# Servicebook Apache hardening for deployments where DocumentRoot is the project root.
+# Recommended: still prefer DocumentRoot -> /public when possible.
+
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block hidden files/folders, except ACME challenge paths.
+    RewriteRule "(^|/)\.(?!well-known/)" - [F,L,NC]
+
+    # Block direct access to non-public application internals.
+    RewriteRule "^(src|storage|templates|memories|vendor|\.git|\.vscode)(/|$)" - [F,L,NC]
+
+    # Block repository docs and dependency metadata from web access.
+    RewriteRule "^(README\.md|PROJECT_SPEC\.md|FUTURE_PLANS\.md|composer\.(json|lock)|package(-lock)?\.json|yarn\.lock)$" - [F,L,NC]
+</IfModule>
