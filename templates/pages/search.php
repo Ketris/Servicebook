@@ -46,8 +46,37 @@ $searchQueryBase = [
         $searchPrevParams['page'] = max(1, $page - 1);
         $searchNextParams = $searchQueryBase;
         $searchNextParams['page'] = min($totalPages, $page + 1);
+        $searchPageWindowStart = max(1, $page - 2);
+        $searchPageWindowEnd = min($totalPages, $page + 2);
         ?>
         <a class="btn btn-sm btn-outline-secondary <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : escape(url('public/search.php?' . http_build_query($searchPrevParams))) ?>">Previous</a>
+        <?php if ($searchPageWindowStart > 1): ?>
+            <?php
+            $searchFirstPageParams = $searchQueryBase;
+            $searchFirstPageParams['page'] = 1;
+            ?>
+            <a class="btn btn-sm <?= $page === 1 ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/search.php?' . http_build_query($searchFirstPageParams))) ?>">1</a>
+            <?php if ($searchPageWindowStart > 2): ?>
+                <span class="text-muted px-1">...</span>
+            <?php endif; ?>
+        <?php endif; ?>
+        <?php for ($searchPage = $searchPageWindowStart; $searchPage <= $searchPageWindowEnd; $searchPage++): ?>
+            <?php
+            $searchPageParams = $searchQueryBase;
+            $searchPageParams['page'] = $searchPage;
+            ?>
+            <a class="btn btn-sm <?= $searchPage === $page ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/search.php?' . http_build_query($searchPageParams))) ?>"><?= escape((string)$searchPage) ?></a>
+        <?php endfor; ?>
+        <?php if ($searchPageWindowEnd < $totalPages): ?>
+            <?php if ($searchPageWindowEnd < ($totalPages - 1)): ?>
+                <span class="text-muted px-1">...</span>
+            <?php endif; ?>
+            <?php
+            $searchLastPageParams = $searchQueryBase;
+            $searchLastPageParams['page'] = $totalPages;
+            ?>
+            <a class="btn btn-sm <?= $page === $totalPages ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/search.php?' . http_build_query($searchLastPageParams))) ?>"><?= escape((string)$totalPages) ?></a>
+        <?php endif; ?>
         <a class="btn btn-sm btn-outline-secondary <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : escape(url('public/search.php?' . http_build_query($searchNextParams))) ?>">Next</a>
     </div>
 </div>
