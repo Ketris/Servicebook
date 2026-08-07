@@ -24,7 +24,8 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - Administrators can clear lockouts and trigger temporary password resets from User Management.
 - User management enforces server-side role validation, requires a linked technician profile for Technician accounts, and enforces a 10-character minimum password.
 - Installer connection errors show a sanitized message to the browser; full exception details are logged server-side only.
-- Application events and errors are logged to `storage/logs/app.log`.
+- Application events and errors are logged to `storage/logs/app-YYYY-MM-DD.log` with daily rotation.
+- Log retention keeps the most recent 60 days of daily logs and prunes older files automatically.
 - Technician users land on a dedicated My Jobs dashboard after login, with quick status updates and claim actions for unassigned work.
 - Main call list supports quick filters for open, unassigned, closed today, and closed this week.
 - Edit call view shows Last Modified timestamp and actor.
