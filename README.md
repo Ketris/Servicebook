@@ -26,6 +26,10 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
 - Installer connection errors show a sanitized message to the browser; full exception details are logged server-side only.
 - Application events and errors are logged to `storage/logs/app-YYYY-MM-DD.log` with daily rotation.
 - Log retention keeps the most recent 60 days of daily logs and prunes older files automatically.
+- Database backups are stored as compressed `.json.gz` snapshots in `storage/backups/`.
+- Backup storage is protected with `.htaccess` deny rules.
+- Administrators can configure automatic backup cadence and retention in System Settings.
+- Administrators can create, download, and restore backups from stored files or uploaded compressed backup files.
 - Technician users land on a dedicated My Jobs dashboard after login, with quick status updates and claim actions for unassigned work.
 - Main call list supports quick filters for open, unassigned, closed today, and closed this week.
 - Edit call view shows Last Modified timestamp and actor.
