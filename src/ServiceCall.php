@@ -341,30 +341,51 @@ class ServiceCall
         $receivedDate = self::normalizeReceivedDate($data['received_date'] ?? '');
 
         if ($id === null) {
-            $jobNumber = self::generateJobNumber($receivedDate);
-            $stmt = $pdo->prepare(
-                'INSERT INTO service_calls
-                 (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_tech, status, created_by, created_at, updated_at)
-                 VALUES
-                 (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
-            );
-            $stmt->execute([
-                ':job_number' => $jobNumber,
-                ':received_date' => $receivedDate,
-                ':customer' => $data['customer'],
-                ':location' => $data['location'],
-                ':contact' => $data['contact'],
-                ':phone' => $data['phone'],
-                ':email' => $data['email'],
-                ':po_number' => $data['po_number'],
-                ':reported_issue' => $data['reported_issue'],
-                ':internal_notes' => $data['internal_notes'],
-                ':assigned_tech' => $data['assigned_tech'] ?: null,
-                ':status' => $data['status'],
-                ':created_by' => $data['created_by'],
-                ':created_at' => $now,
-                ':updated_at' => $now,
-            ]);
+            $insertAttempts = 0;
+            $maxInsertAttempts = 5;
+            while (true) {
+                $insertAttempts++;
+                $jobNumber = self::generateJobNumber($receivedDate);
+                $stmt = $pdo->prepare(
+                    'INSERT INTO service_calls
+                     (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_tech, status, created_by, created_at, updated_at)
+                     VALUES
+                     (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
+                );
+
+                try {
+                    $stmt->execute([
+                        ':job_number' => $jobNumber,
+                        ':received_date' => $receivedDate,
+                        ':customer' => $data['customer'],
+                        ':location' => $data['location'],
+                        ':contact' => $data['contact'],
+                        ':phone' => $data['phone'],
+                        ':email' => $data['email'],
+                        ':po_number' => $data['po_number'],
+                        ':reported_issue' => $data['reported_issue'],
+                        ':internal_notes' => $data['internal_notes'],
+                        ':assigned_tech' => $data['assigned_tech'] ?: null,
+                        ':status' => $data['status'],
+                        ':created_by' => $data['created_by'],
+                        ':created_at' => $now,
+                        ':updated_at' => $now,
+                    ]);
+                    break;
+                } catch (PDOException $exception) {
+                    if ($insertAttempts < $maxInsertAttempts && self::isDuplicateJobNumberException($exception)) {
+                        Logger::warning('Duplicate job number collision detected during create; retrying insert', [
+                            'job_number' => $jobNumber,
+                            'attempt' => $insertAttempts,
+                        ]);
+                        usleep(random_int(10000, 50000));
+                        continue;
+                    }
+
+                    throw $exception;
+                }
+            }
+
             ReusableRecord::syncFromServiceCall($data);
             $newId = (int)$pdo->lastInsertId();
             self::logChange($newId, $actor, 'created', null, 'created', 'Service call created');
@@ -770,6 +791,19 @@ class ServiceCall
         $sequence = (int)($row['max_sequence'] ?? 0) + 1;
 
         return sprintf('%s-%03d', $monthCode, $sequence);
+    }
+
+    private static function isDuplicateJobNumberException(PDOException $exception): bool
+    {
+        $sqlState = (string)$exception->getCode();
+        $message = strtolower((string)$exception->getMessage());
+
+        if ($sqlState !== '23000' && !str_contains($message, '1062')) {
+            return false;
+        }
+
+        return str_contains($message, 'duplicate entry')
+            && str_contains($message, 'job_number');
     }
 
     private static function isNewestCall(int $serviceCallId): bool
