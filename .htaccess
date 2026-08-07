@@ -15,4 +15,7 @@ ServerSignature Off
 
     # Block repository docs and dependency metadata from web access.
     RewriteRule "^(README\.md|PROJECT_SPEC\.md|FUTURE_PLANS\.md|composer\.(json|lock)|package(-lock)?\.json|yarn\.lock)$" - [F,L,NC]
+
+    # Defense in depth: never execute script-like files from uploaded branding assets.
+    RewriteRule "^public/assets/branding/.*\.(php[0-9]?|phtml|phar|cgi|pl|py|jsp|asp|aspx|sh)$" - [F,L,NC]
 </IfModule>
