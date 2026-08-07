@@ -253,7 +253,7 @@ if ($selectedViewId > 0) {
     <div class="small text-muted">
         Page <?= escape((string)$page) ?> of <?= escape((string)$totalPages) ?>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <nav class="d-flex align-items-center gap-2" aria-label="Service calls pagination">
         <?php
         $prevParams = $indexQueryBase;
         $prevParams['page'] = max(1, $page - 1);
@@ -262,15 +262,19 @@ if ($selectedViewId > 0) {
         $indexPageWindowStart = max(1, $page - 2);
         $indexPageWindowEnd = min($totalPages, $page + 2);
         ?>
-        <a class="btn btn-sm btn-outline-secondary <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : escape(url('public/index.php?' . http_build_query($prevParams))) ?>">Previous</a>
+        <?php if ($page <= 1): ?>
+            <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Previous</span>
+        <?php else: ?>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= escape(url('public/index.php?' . http_build_query($prevParams))) ?>" rel="prev">Previous</a>
+        <?php endif; ?>
         <?php if ($indexPageWindowStart > 1): ?>
             <?php
             $firstPageParams = $indexQueryBase;
             $firstPageParams['page'] = 1;
             ?>
-            <a class="btn btn-sm <?= $page === 1 ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($firstPageParams))) ?>">1</a>
+            <a class="btn btn-sm <?= $page === 1 ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($firstPageParams))) ?>" <?= $page === 1 ? 'aria-current="page"' : '' ?>>1</a>
             <?php if ($indexPageWindowStart > 2): ?>
-                <span class="text-muted px-1">...</span>
+                <span class="text-muted px-1" aria-hidden="true">...</span>
             <?php endif; ?>
         <?php endif; ?>
         <?php for ($indexPage = $indexPageWindowStart; $indexPage <= $indexPageWindowEnd; $indexPage++): ?>
@@ -278,20 +282,24 @@ if ($selectedViewId > 0) {
             $indexPageParams = $indexQueryBase;
             $indexPageParams['page'] = $indexPage;
             ?>
-            <a class="btn btn-sm <?= $indexPage === $page ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($indexPageParams))) ?>"><?= escape((string)$indexPage) ?></a>
+            <a class="btn btn-sm <?= $indexPage === $page ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($indexPageParams))) ?>" <?= $indexPage === $page ? 'aria-current="page"' : '' ?>><?= escape((string)$indexPage) ?></a>
         <?php endfor; ?>
         <?php if ($indexPageWindowEnd < $totalPages): ?>
             <?php if ($indexPageWindowEnd < ($totalPages - 1)): ?>
-                <span class="text-muted px-1">...</span>
+                <span class="text-muted px-1" aria-hidden="true">...</span>
             <?php endif; ?>
             <?php
             $lastPageParams = $indexQueryBase;
             $lastPageParams['page'] = $totalPages;
             ?>
-            <a class="btn btn-sm <?= $page === $totalPages ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($lastPageParams))) ?>"><?= escape((string)$totalPages) ?></a>
+            <a class="btn btn-sm <?= $page === $totalPages ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($lastPageParams))) ?>" <?= $page === $totalPages ? 'aria-current="page"' : '' ?>><?= escape((string)$totalPages) ?></a>
         <?php endif; ?>
-        <a class="btn btn-sm btn-outline-secondary <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : escape(url('public/index.php?' . http_build_query($nextParams))) ?>">Next</a>
-    </div>
+        <?php if ($page >= $totalPages): ?>
+            <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Next</span>
+        <?php else: ?>
+            <a class="btn btn-sm btn-outline-secondary" href="<?= escape(url('public/index.php?' . http_build_query($nextParams))) ?>" rel="next">Next</a>
+        <?php endif; ?>
+    </nav>
 </div>
 <?php if (($user['role'] ?? '') !== 'Technician'): ?>
     <div class="card border-0 shadow-sm mt-3">
