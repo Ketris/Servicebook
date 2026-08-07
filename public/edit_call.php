@@ -45,7 +45,7 @@ $values = [
     'expected_updated_at' => (string)($call['updated_at'] ?? $call['created_at'] ?? ''),
 ];
 $history = ServiceCall::findHistory($id);
-$relatedCalls = ServiceCall::findRelatedCalls($id, $call['customer'] ?? null, $call['location'] ?? null);
+$relatedCalls = ServiceCall::findRelatedCalls($id, $call['location'] ?? null);
 $lastModifiedAt = $call['updated_at'] ?? $call['created_at'];
 $lastModifiedBy = !empty($history) ? ($history[0]['changed_by_name'] ?? 'System') : 'System';
 

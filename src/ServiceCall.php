@@ -259,29 +259,19 @@ class ServiceCall
         return $result ?: null;
     }
 
-    public static function findRelatedCalls(int $currentId, ?string $customer, ?string $location, int $limit = 8): array
+    public static function findRelatedCalls(int $currentId, ?string $location, int $limit = 8): array
     {
-        $customerKey = self::normalizeLookupValue($customer);
         $locationKey = self::normalizeLookupValue($location);
-        if ($customerKey === null && $locationKey === null) {
+        if ($locationKey === null) {
             return [];
         }
 
         $safeLimit = max(1, min($limit, 25));
-        $conditions = ['sc.id <> :current_id'];
-        $params = [':current_id' => $currentId];
-
-        if ($customerKey !== null && $locationKey !== null) {
-            $conditions[] = '(LOWER(TRIM(sc.customer)) = :customer_key OR LOWER(TRIM(sc.location)) = :location_key)';
-            $params[':customer_key'] = $customerKey;
-            $params[':location_key'] = $locationKey;
-        } elseif ($customerKey !== null) {
-            $conditions[] = 'LOWER(TRIM(sc.customer)) = :customer_key';
-            $params[':customer_key'] = $customerKey;
-        } else {
-            $conditions[] = 'LOWER(TRIM(sc.location)) = :location_key';
-            $params[':location_key'] = $locationKey;
-        }
+        $conditions = ['sc.id <> :current_id', 'LOWER(TRIM(sc.location)) = :location_key'];
+        $params = [
+            ':current_id' => $currentId,
+            ':location_key' => $locationKey,
+        ];
 
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
@@ -296,14 +286,7 @@ class ServiceCall
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
-            $matches = [];
-            if ($customerKey !== null && self::normalizeLookupValue($row['customer'] ?? null) === $customerKey) {
-                $matches[] = 'Customer';
-            }
-            if ($locationKey !== null && self::normalizeLookupValue($row['location'] ?? null) === $locationKey) {
-                $matches[] = 'Location';
-            }
-            $row['match_label'] = empty($matches) ? 'Related' : implode(' + ', $matches);
+            $row['match_label'] = 'Location';
         }
         unset($row);
 
