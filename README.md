@@ -12,6 +12,20 @@ A lightweight service call manager built with PHP, MySQL, Bootstrap 5, and vanil
    - Username: `admin`
    - Temporary password shown by the installer after first setup.
 
+## Schema Updates (Explicit Migrations)
+
+- Runtime web requests no longer auto-apply schema changes.
+- Run schema updates intentionally from CLI:
+
+```bash
+php scripts/migrate.php
+```
+
+- Recommended deployment order for updates:
+   1. Pull code.
+   2. Run `php scripts/migrate.php`.
+   3. Verify app login and main call list.
+
 ## Notes
 
 - The installer creates the initial admin user automatically and shows a one-time temporary password on first run.
