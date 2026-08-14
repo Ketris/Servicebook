@@ -6,6 +6,7 @@ class AppSettings
     private const DEFAULTS = [
         'site_title' => 'Servicebook',
         'site_logo_path' => '',
+        'saved_views_enabled' => '0',
         'backup_auto_enabled' => '1',
         'backup_cadence' => 'daily',
         'backup_retention_days' => '60',

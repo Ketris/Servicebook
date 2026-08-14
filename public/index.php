@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/AppSettings.php';
 require_once __DIR__ . '/../src/Installation.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/SavedView.php';
@@ -11,7 +12,12 @@ Installation::redirectToInstallerIfNeeded();
 Auth::requireLogin();
 $user = Auth::currentUser();
 $search = trim($_GET['search'] ?? '');
-$filter = trim($_GET['filter'] ?? 'incomplete');
+$isAdministrator = (string)($user['role'] ?? '') === 'Administrator';
+$defaultFilter = $isAdministrator ? 'all' : 'incomplete';
+$filter = trim((string)($_GET['filter'] ?? ''));
+if ($filter === '') {
+    $filter = $defaultFilter;
+}
 $allowedPerPage = [25, 50, 100, 250];
 $perPage = (int)($_GET['per_page'] ?? 50);
 if (!in_array($perPage, $allowedPerPage, true)) {
@@ -25,13 +31,14 @@ $errors = [];
 $success = trim((string)($_SESSION['success_message'] ?? ''));
 unset($_SESSION['success_message']);
 if (!in_array($filter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
-    $filter = 'incomplete';
+    $filter = $defaultFilter;
 }
 
-$selectedViewId = (int)($_GET['saved_view'] ?? 0);
-$savedViews = SavedView::listVisibleForUser($user, 'calls');
+$savedViewsEnabled = AppSettings::get('saved_views_enabled') === '1';
+$selectedViewId = $savedViewsEnabled ? (int)($_GET['saved_view'] ?? 0) : 0;
+$savedViews = $savedViewsEnabled ? SavedView::listVisibleForUser($user, 'calls') : [];
 $activeViewName = '';
-if ($selectedViewId > 0) {
+if ($savedViewsEnabled && $selectedViewId > 0) {
     $savedView = SavedView::findVisibleById($selectedViewId, $user, 'calls');
     if ($savedView) {
         $search = trim((string)($savedView['search_term'] ?? ''));
@@ -41,7 +48,7 @@ if ($selectedViewId > 0) {
         }
         $activeViewName = (string)($savedView['view_name'] ?? '');
     }
-} elseif ($search === '' && $filter === 'incomplete') {
+} elseif ($savedViewsEnabled && $search === '' && $filter === $defaultFilter) {
     foreach ($savedViews as $candidateView) {
         $isRoleDefault = (int)($candidateView['is_default'] ?? 0) === 1
             && empty($candidateView['user_id'])
@@ -89,15 +96,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'updated_count' => $updatedCount,
                 ]);
             } elseif ($action === 'save_view') {
+                if (!$savedViewsEnabled) {
+                    throw new InvalidArgumentException('Saved Views beta feature is currently disabled by an administrator.');
+                }
                 $viewName = trim((string)($_POST['view_name'] ?? ''));
                 SavedView::createPersonal((int)($user['id'] ?? 0), 'calls', $viewName, $search, $filter);
                 $success = 'Saved view created.';
             } elseif ($action === 'save_default_view' && ($user['role'] ?? '') === 'Administrator') {
+                if (!$savedViewsEnabled) {
+                    throw new InvalidArgumentException('Saved Views beta feature is currently disabled by an administrator.');
+                }
                 $viewName = trim((string)($_POST['view_name'] ?? ''));
                 $roleScope = trim((string)($_POST['default_role_scope'] ?? 'Office Staff'));
                 SavedView::createRoleDefault((int)($user['id'] ?? 0), $roleScope, 'calls', $viewName, $search, $filter);
                 $success = 'Role default view updated for ' . $roleScope . '.';
             } elseif ($action === 'delete_view') {
+                if (!$savedViewsEnabled) {
+                    throw new InvalidArgumentException('Saved Views beta feature is currently disabled by an administrator.');
+                }
                 $viewId = (int)($_POST['view_id'] ?? 0);
                 if (SavedView::deleteForUser($viewId, $user)) {
                     $success = 'Saved view deleted.';
@@ -123,7 +139,7 @@ if (!is_array($recentSearches)) {
     $recentSearches = [];
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($search !== '' || $filter !== 'incomplete' || $selectedViewId > 0)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($search !== '' || $filter !== $defaultFilter || $selectedViewId > 0)) {
     $entry = [
         'search' => $search,
         'filter' => $filter,
@@ -159,13 +175,14 @@ $offset = ($page - 1) * $perPage;
 $calls = ServiceCall::findAll($search, $filter, $perPage, $offset);
 $stats = ServiceCall::getSummaryStats();
 $technicians = Technician::findAllActive();
-$savedViews = SavedView::listVisibleForUser($user, 'calls');
+$savedViews = $savedViewsEnabled ? SavedView::listVisibleForUser($user, 'calls') : [];
 
 Template::render('pages/index', [
     'title' => 'Service Calls',
     'user' => $user,
     'search' => $search,
     'filter' => $filter,
+    'defaultFilter' => $defaultFilter,
     'calls' => $calls,
     'page' => $page,
     'perPage' => $perPage,
@@ -175,6 +192,7 @@ Template::render('pages/index', [
     'stats' => $stats,
     'technicians' => $technicians,
     'savedViews' => $savedViews,
+    'savedViewsEnabled' => $savedViewsEnabled,
     'selectedViewId' => $selectedViewId,
     'errors' => $errors,
     'success' => $success,
