@@ -97,6 +97,12 @@ $paginationBaseParams = array_merge(['per_page' => $perPage], $filterParams);
     </div>
     <form method="get" class="d-flex align-items-center gap-2">
         <input type="hidden" name="page" value="1">
+        <input type="hidden" name="query" value="<?= escape($filterParams['query']) ?>">
+        <input type="hidden" name="actor" value="<?= escape($filterParams['actor']) ?>">
+        <input type="hidden" name="event_type" value="<?= escape($filterParams['event_type']) ?>">
+        <input type="hidden" name="field_name" value="<?= escape($filterParams['field_name']) ?>">
+        <input type="hidden" name="date_from" value="<?= escape($filterParams['date_from']) ?>">
+        <input type="hidden" name="date_to" value="<?= escape($filterParams['date_to']) ?>">
         <label class="small text-muted mb-0" for="per-page">Rows</label>
         <select id="per-page" name="per_page" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
             <?php foreach ([25, 50, 100, 250] as $option): ?>
@@ -126,9 +132,10 @@ $paginationBaseParams = array_merge(['per_page' => $perPage], $filterParams);
                     </tr>
                 <?php else: ?>
                     <?php foreach ($activity as $entry): ?>
+                        <?php $actorName = trim((string)($entry['changed_by_name'] ?? '')); ?>
                         <tr>
                             <td class="text-nowrap"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?></td>
-                            <td><?= escape($entry['changed_by_name'] ?? 'System') ?></td>
+                            <td><?= escape($actorName !== '' ? $actorName : 'System') ?></td>
                             <td>
                                 <?php if (!empty($entry['service_call_id'])): ?>
                                     <a href="<?= url('public/edit_call.php?id=' . $entry['service_call_id']) ?>" class="text-decoration-none"><?= escape($entry['job_number'] ?? ('Call #' . $entry['service_call_id'])) ?></a>

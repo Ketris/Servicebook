@@ -66,8 +66,9 @@
                 <?php else: ?>
                     <ul class="list-unstyled mb-0">
                         <?php foreach ($recentActivity as $entry): ?>
+                            <?php $actorName = trim((string)($entry['changed_by_name'] ?? '')); ?>
                             <li class="border-bottom py-2">
-                                <div class="small text-muted"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape($entry['changed_by_name'] ?? 'System') ?></div>
+                                <div class="small text-muted"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape($actorName !== '' ? $actorName : 'System') ?></div>
                                 <div>
                                     <?= escape($entry['job_number'] ?? 'Unknown Job') ?> - <?= escape($entry['field_name']) ?>
                                 </div>

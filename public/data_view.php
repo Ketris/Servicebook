@@ -148,6 +148,12 @@ if ($source === 'calls') {
     }
 
     $rows = ServiceCall::findRecentActivity(500, 0, $activityFilters);
+    foreach ($rows as &$row) {
+        $actorName = trim((string)($row['changed_by_name'] ?? ''));
+        $row['changed_by_name'] = $actorName !== '' ? $actorName : 'System';
+    }
+    unset($row);
+
     $columns = [
         'created_at' => 'When',
         'changed_by_name' => 'User',

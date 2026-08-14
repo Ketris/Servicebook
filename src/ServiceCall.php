@@ -549,7 +549,7 @@ class ServiceCall
                 'service_call_id' => $serviceCallId,
                 'job_number' => $call['job_number'] ?? null,
                 'updated_by_user_id' => $actor['id'] ?? null,
-                'updated_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+                'updated_by_name' => self::resolveActorName($actor, 'System'),
             ]);
 
             return 'cancelled';
@@ -573,7 +573,7 @@ class ServiceCall
                     'service_call_id' => $serviceCallId,
                     'job_number' => $call['job_number'] ?? null,
                     'deleted_by_user_id' => $actor['id'] ?? null,
-                    'deleted_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+                    'deleted_by_name' => self::resolveActorName($actor, 'System'),
                 ]);
             }
 
@@ -617,7 +617,7 @@ class ServiceCall
         $stmt->execute([
             ':service_call_id' => $serviceCallId,
             ':changed_by_user_id' => $actor['id'] ?? null,
-            ':changed_by_name' => $actor['display_name'] ?? $actor['username'] ?? 'System',
+            ':changed_by_name' => self::resolveActorName($actor, 'System'),
             ':field_name' => $fieldName,
             ':old_value' => $oldValue,
             ':new_value' => $newValue,
@@ -801,9 +801,24 @@ class ServiceCall
     private static function appendTechnicianNote(string $existingNotes, string $note, array $actor): string
     {
         $timestamp = date('Y-m-d H:i');
-        $prefix = (string)($actor['display_name'] ?? $actor['username'] ?? 'Technician');
+        $prefix = self::resolveActorName($actor, 'Technician');
         $entry = "[{$timestamp}] {$prefix}: {$note}";
         return trim($existingNotes === '' ? $entry : $existingNotes . "\n\n" . $entry);
+    }
+
+    private static function resolveActorName(?array $actor, string $fallback): string
+    {
+        $displayName = trim((string)($actor['display_name'] ?? ''));
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $username = trim((string)($actor['username'] ?? ''));
+        if ($username !== '') {
+            return $username;
+        }
+
+        return $fallback;
     }
 
     private static function normalizeExpectedUpdatedAt(?string $value, string $fallback): ?string

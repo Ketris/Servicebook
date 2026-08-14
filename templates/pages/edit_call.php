@@ -202,9 +202,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 <div class="card-body">
                     <ul class="list-unstyled mb-0">
                         <?php foreach ($history as $entry): ?>
-                            <li class="border-bottom py-2">
-                                <div class="small text-muted">
-                                    <?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape($entry['changed_by_name'] ?? 'System') ?>
+                                <li class="border-bottom py-2">
+                                    <div class="small text-muted">
+                                        <?php $actorName = trim((string)($entry['changed_by_name'] ?? '')); ?>
+                                        <?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape($actorName !== '' ? $actorName : 'System') ?>
                                 </div>
                                 <div><strong><?= escape($entry['field_name']) ?></strong></div>
                                 <?php if (!empty($entry['note'])): ?>
