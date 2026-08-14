@@ -163,8 +163,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
 
     function applyCustomerProfile() {
         syncLocationOptionsForCustomer();
+        const customerKey = keyFor(customerInput.value);
+        const customerLocationOptions = customerKey !== '' ? (customerLocations[customerKey] || []) : [];
 
-        const profile = customerProfiles[keyFor(customerInput.value)] || null;
+        const profile = customerProfiles[customerKey] || null;
         if (!profile) {
             return;
         }
@@ -172,7 +174,9 @@ $initialLocationNames = $selectedCustomerKey !== ''
         fillIfEmpty(contactInput, profile.contact || '');
         fillIfEmpty(phoneInput, profile.phone || '');
         fillIfEmpty(emailInput, profile.email || '');
-        fillIfEmpty(locationInput, profile.location || '');
+        if (customerLocationOptions.length === 1) {
+            fillIfEmpty(locationInput, customerLocationOptions[0] || '');
+        }
     }
 
     function applyLocationProfile() {
