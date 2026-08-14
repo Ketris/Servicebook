@@ -40,15 +40,14 @@ Implemented highlights:
 ## Quick Start
 
 1. Configure Apache to serve this project.
-2. Prefer setting DocumentRoot to the public directory.
-3. Open install.php in your browser.
-4. Enter database connection details and site title.
-5. Complete setup and sign in at public/login.php.
-6. Save the temporary admin password shown at install time.
+2. Open install.php in your browser.
+3. Enter database connection details and site title.
+4. Complete setup and sign in at public/login.php.
+5. Save the temporary admin password shown at install time.
 
 ## Security and Operations Notes
 
-- If DocumentRoot cannot be set to public, root .htaccess includes protection rules for sensitive paths.
+- If DocumentRoot cannot be changed to public/ after installation is complete, root .htaccess includes protection rules for sensitive paths.
 - Branding uploads are restricted by file type and size and protected from script execution.
 - Backup storage is protected by storage/backups/.htaccess deny rules.
 - Session cookies use HttpOnly, SameSite=Lax, and HTTPS-aware Secure behavior.
