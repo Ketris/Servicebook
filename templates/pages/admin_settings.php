@@ -7,6 +7,7 @@
 $backupRetention = (string)($settings['backup_retention_days'] ?? '60');
 $backupCadence = (string)($settings['backup_cadence'] ?? 'daily');
 $backupAutoEnabled = (string)($settings['backup_auto_enabled'] ?? '1') === '1';
+$savedViewsEnabled = (string)($settings['saved_views_enabled'] ?? '0') === '1';
 $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
 ?>
 <div class="row justify-content-center">
@@ -64,6 +65,17 @@ $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
                             </div>
                         </div>
                     <?php endif; ?>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="saved_views_enabled">Saved Views (Beta)</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" value="1" id="saved_views_enabled" name="saved_views_enabled" <?= $savedViewsEnabled ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="saved_views_enabled">Enable Saved Views beta feature</label>
+                        </div>
+                        <div class="form-text">When disabled, users will not see or be able to use Saved Views on the calls page.</div>
+                    </div>
 
                     <hr>
 

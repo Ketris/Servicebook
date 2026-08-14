@@ -1,3 +1,10 @@
+<?php
+$savedViewsEnabled = !empty($savedViewsEnabled);
+$defaultFilter = trim((string)($defaultFilter ?? 'incomplete'));
+if ($defaultFilter === '') {
+    $defaultFilter = 'incomplete';
+}
+?>
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 gap-3">
     <div>
         <h1 class="h3">Service Calls</h1>
@@ -31,7 +38,7 @@
     </div>
     <form class="d-flex flex-wrap gap-2 align-items-center" method="get" action="<?= url('public/index.php') ?>">
         <input class="form-control" type="search" name="search" placeholder="Search calls" value="<?= escape($search) ?>">
-        <?php if ($selectedViewId > 0): ?>
+        <?php if ($savedViewsEnabled && $selectedViewId > 0): ?>
             <input type="hidden" name="saved_view" value="<?= escape((string)$selectedViewId) ?>">
         <?php endif; ?>
         <div class="d-flex align-items-center gap-2">
@@ -105,14 +112,14 @@ $filterLabel = $filter === 'all' ? 'all' : (
     )
 );
 ?>
-<?php if ($search !== '' || $filter !== 'incomplete'): ?>
+<?php if ($search !== '' || $filter !== $defaultFilter): ?>
     <div class="mb-3">
         <small class="text-muted">
             <?php if ($search !== ''): ?>
                 Showing calls matching <strong><?= escape($search) ?></strong>
                 <?php $showingStatus = true; ?>
             <?php endif; ?>
-            <?php if ($filter !== 'incomplete'): ?>
+            <?php if ($filter !== $defaultFilter): ?>
                 <?php if ($showingStatus): ?>
                     and
                 <?php endif; ?>
@@ -245,7 +252,7 @@ $indexQueryBase = [
     'filter' => $filter,
     'per_page' => $perPage,
 ];
-if ($selectedViewId > 0) {
+if ($savedViewsEnabled && $selectedViewId > 0) {
     $indexQueryBase['saved_view'] = $selectedViewId;
 }
 ?>
@@ -350,6 +357,7 @@ if ($selectedViewId > 0) {
         </div>
     </div>
 <?php endif; ?>
+<?php if ($savedViewsEnabled): ?>
 <div class="card border-0 shadow-sm mt-3">
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
         <div>
@@ -467,6 +475,7 @@ if ($selectedViewId > 0) {
     </div>
     </div>
 </div>
+<?php endif; ?>
 <script>
 (function () {
     const table = document.querySelector('table');
