@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['created_by'] = $user['id'];
             $data['assigned_tech'] = $data['assigned_tech'] ?: null;
             try {
-                ServiceCall::save($data);
+                ServiceCall::save($data, null, $user);
                 header('Location: ' . url('public/index.php'));
                 exit;
             } catch (InvalidArgumentException $exception) {
