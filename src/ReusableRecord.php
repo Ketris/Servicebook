@@ -556,7 +556,7 @@ class ReusableRecord
         }
     }
 
-    private static function findCustomerById(int $id): array|null
+    public static function findCustomerById(int $id): array|null
     {
         if ($id <= 0) {
             return null;
@@ -569,7 +569,7 @@ class ReusableRecord
         return $row ?: null;
     }
 
-    private static function findLocationById(int $id): array|null
+    public static function findLocationById(int $id): array|null
     {
         if ($id <= 0) {
             return null;

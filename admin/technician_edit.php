@@ -18,6 +18,18 @@ $values = [
     'active' => 1,
 ];
 
+$formatTechnicianSummary = static function (array $data): string {
+    $name = trim((string)($data['name'] ?? ''));
+    $phone = trim((string)($data['phone'] ?? ''));
+    $active = (int)($data['active'] ?? 0);
+
+    return implode('; ', [
+        'Name=' . ($name !== '' ? $name : '-'),
+        'Phone=' . ($phone !== '' ? $phone : '-'),
+        'Active=' . ($active === 1 ? 'Yes' : 'No'),
+    ]);
+};
+
 if ($id !== null) {
     $stmt = $pdo->prepare('SELECT id, name, phone, active FROM technicians WHERE id = :id LIMIT 1');
     $stmt->execute([':id' => $id]);
@@ -55,7 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($errors)) {
             try {
                 $wasNewTechnician = $id === null;
-                $beforeName = $existing['name'] ?? null;
+                $beforeSummary = $existing
+                    ? $formatTechnicianSummary($existing)
+                    : null;
                 $savedTechnicianId = $id;
                 if ($id === null) {
                     $stmt = $pdo->prepare(
@@ -86,8 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ServiceCall::logSystemEvent(
                     $user,
                     'technician_record',
-                    $beforeName,
-                    $values['name'],
+                    $beforeSummary,
+                    $formatTechnicianSummary($values),
                     $wasNewTechnician
                         ? 'Technician created (ID ' . $savedTechnicianId . ')'
                         : 'Technician updated (ID ' . $savedTechnicianId . ')'

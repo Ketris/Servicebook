@@ -23,6 +23,24 @@ $values = [
     'active' => $record['active'] ?? 1,
 ];
 
+$formatUserSummary = static function (array $data): string {
+    $username = trim((string)($data['username'] ?? ''));
+    $displayName = trim((string)($data['display_name'] ?? ''));
+    $role = trim((string)($data['role'] ?? ''));
+    $technicianId = isset($data['technician_id']) && (int)$data['technician_id'] > 0
+        ? (string)(int)$data['technician_id']
+        : '-';
+    $active = (int)($data['active'] ?? 0);
+
+    return implode('; ', [
+        'Username=' . ($username !== '' ? $username : '-'),
+        'Display=' . ($displayName !== '' ? $displayName : '-'),
+        'Role=' . ($role !== '' ? $role : '-'),
+        'Technician ID=' . $technicianId,
+        'Active=' . ($active === 1 ? 'Yes' : 'No'),
+    ]);
+};
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';
@@ -74,16 +92,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'admin_user_id' => $user['id'] ?? null,
                     'target_user_id' => $savedId,
                 ]);
-                $beforeRole = $record['role'] ?? null;
-                $afterRole = (string)($values['role'] ?? 'Office Staff');
+                $beforeSummary = $record ? $formatUserSummary($record) : null;
+                $afterSummary = $formatUserSummary($values);
                 $note = $isNewUser
                     ? 'User account created: ' . $values['username']
                     : 'User account updated: ' . $values['username'];
                 ServiceCall::logSystemEvent(
                     $user,
                     'user_account',
-                    $beforeRole,
-                    $afterRole,
+                    $beforeSummary,
+                    $afterSummary,
                     $note
                 );
                 header('Location: ' . url('admin/users.php'));
