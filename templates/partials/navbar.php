@@ -17,16 +17,17 @@ $app_logo_url = $app_logo_url ?? '';
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="<?= url('public/new_call.php') ?>">New Call</a></li>
-                <?php if (($user['role'] ?? '') === 'Technician'): ?>
-                    <li class="nav-item"><a class="nav-link" href="<?= url('public/technician_dashboard.php') ?>">My Jobs</a></li>
+                <?php if ((int)($user['technician_id'] ?? 0) > 0): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?= url('public/technician_dashboard.php') ?>">My Dashboard</a></li>
                 <?php endif; ?>
+                <li class="nav-item"><a class="nav-link" href="<?= url('public/new_call.php') ?>">New Call</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= url('public/index.php') ?>">All Calls</a></li>
                 <?php if (($user['role'] ?? '') === 'Administrator'): ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administration</a>
                         <ul class="dropdown-menu" aria-labelledby="adminMenu">
-                            <li><a class="dropdown-item" href="<?= url('admin/index.php') ?>">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="<?= url('admin/index.php') ?>">Admin Dashboard</a></li>
+                            <li><a class="dropdown-item" href="<?= url('public/technician_dashboard.php') ?>">Technician Dashboard</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/activity.php') ?>">Activity Log</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/records.php') ?>">Record Management</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/users.php') ?>">Users</a></li>
