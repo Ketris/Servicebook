@@ -663,6 +663,93 @@ function confirmBulkUpdate() {
     }
     return confirm('Apply the selected bulk update to ' + selectedCount + ' call(s)?');
 }
+
+(function () {
+    const pollIntervalMs = 15000;
+    let lastSignature = null;
+
+    function buildPollUrl() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('poll', '1');
+        return window.location.pathname + '?' + params.toString();
+    }
+
+    function hasPendingSelection() {
+        return document.querySelectorAll('.row-check:checked').length > 0;
+    }
+
+    function userIsInteracting() {
+        const active = document.activeElement;
+        if (!active || active === document.body) {
+            return false;
+        }
+        return ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+    }
+
+    function showRefreshBanner() {
+        if (document.getElementById('auto-refresh-banner')) {
+            return;
+        }
+        const banner = document.createElement('div');
+        banner.id = 'auto-refresh-banner';
+        banner.className = 'alert alert-info d-flex justify-content-between align-items-center gap-3 py-2';
+        banner.setAttribute('role', 'status');
+        const text = document.createElement('span');
+        text.textContent = 'New service call activity is available.';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-sm btn-primary';
+        button.textContent = 'Refresh now';
+        button.addEventListener('click', function () {
+            window.location.reload();
+        });
+        banner.appendChild(text);
+        banner.appendChild(button);
+        const heading = document.querySelector('h1.h3');
+        const anchor = heading ? heading.closest('.d-flex.flex-column.flex-md-row') : null;
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(banner, anchor);
+        } else {
+            document.body.insertBefore(banner, document.body.firstChild);
+        }
+    }
+
+    async function poll() {
+        if (document.visibilityState === 'hidden') {
+            return;
+        }
+        let response;
+        try {
+            response = await fetch(buildPollUrl(), { headers: { 'Accept': 'application/json' } });
+        } catch (error) {
+            return;
+        }
+        if (!response.ok) {
+            return;
+        }
+        let data;
+        try {
+            data = await response.json();
+        } catch (error) {
+            return;
+        }
+        if (lastSignature === null) {
+            lastSignature = data.signature;
+            return;
+        }
+        if (data.signature === lastSignature) {
+            return;
+        }
+        lastSignature = data.signature;
+        if (hasPendingSelection() || userIsInteracting()) {
+            showRefreshBanner();
+        } else {
+            window.location.reload();
+        }
+    }
+
+    setInterval(poll, pollIntervalMs);
+})();
 </script>
 <style>
 .resize-handle {

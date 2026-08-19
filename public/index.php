@@ -67,6 +67,13 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['poll'] ?? '') === '1') {
+    $pollSignature = ServiceCall::getListSignature($search, $filter) . '|' . implode(',', ServiceCall::getSummaryStats());
+    header('Content-Type: application/json');
+    echo json_encode(['signature' => $pollSignature]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';

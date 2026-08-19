@@ -60,6 +60,28 @@ class ServiceCall
         return (int)($row['call_count'] ?? 0);
     }
 
+    public static function getListSignature(?string $search = null, ?string $statusFilter = 'all'): string
+    {
+        $pdo = Database::getConnection();
+        [$conditions, $params] = self::buildCallListConditions($search, $statusFilter);
+
+        $query = 'SELECT COUNT(*) AS call_count, MAX(sc.id) AS max_id, MAX(sc.updated_at) AS max_updated
+            FROM service_calls sc';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return implode('|', [
+            (int)($row['call_count'] ?? 0),
+            (int)($row['max_id'] ?? 0),
+            (string)($row['max_updated'] ?? ''),
+        ]);
+    }
+
     public static function getSummaryStats(): array
     {
         $pdo = Database::getConnection();
