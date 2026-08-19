@@ -35,6 +35,7 @@ if (!in_array($filter, ['all', 'incomplete', 'unassigned', 'completed_today', 'c
 }
 
 $savedViewsEnabled = AppSettings::get('saved_views_enabled') === '1';
+$bulkManagementEnabled = AppSettings::get('bulk_management_enabled') === '1';
 $selectedViewId = $savedViewsEnabled ? (int)($_GET['saved_view'] ?? 0) : 0;
 $savedViews = $savedViewsEnabled ? SavedView::listVisibleForUser($user, 'calls') : [];
 $activeViewName = '';
@@ -74,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             if ($action === 'bulk_update') {
+                if (!$bulkManagementEnabled) {
+                    throw new InvalidArgumentException('Bulk Management beta feature is currently disabled by an administrator.');
+                }
                 if (($user['role'] ?? '') === 'Technician') {
                     throw new InvalidArgumentException('Technician accounts cannot run bulk call updates.');
                 }
@@ -193,6 +197,7 @@ Template::render('pages/index', [
     'technicians' => $technicians,
     'savedViews' => $savedViews,
     'savedViewsEnabled' => $savedViewsEnabled,
+    'bulkManagementEnabled' => $bulkManagementEnabled,
     'selectedViewId' => $selectedViewId,
     'errors' => $errors,
     'success' => $success,

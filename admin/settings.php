@@ -140,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $settings['site_title'] = trim((string)($_POST['site_title'] ?? ''));
             $settings['saved_views_enabled'] = isset($_POST['saved_views_enabled']) ? '1' : '0';
+            $settings['bulk_management_enabled'] = isset($_POST['bulk_management_enabled']) ? '1' : '0';
             $settings['backup_auto_enabled'] = isset($_POST['backup_auto_enabled']) ? '1' : '0';
 
             $backupCadence = trim((string)($_POST['backup_cadence'] ?? 'daily'));

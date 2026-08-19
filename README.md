@@ -14,7 +14,7 @@ Implemented highlights:
 - Technician dashboard with quick updates and claim actions for unassigned work
 - Open/unassigned/closed filters and dedicated search
 - Pagination on call list, search, and activity history
-- Saved views, recent views, bulk updates, CSV export, and print views
+- Saved views, recent views, CSV export, and print views
 - Shared keyboard shortcut handling; press N on the call list to create a new call
 - Reusable customer and location records with admin merge/edit tools
 - Activity logging for call-level changes and system-level admin actions
