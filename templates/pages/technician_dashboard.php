@@ -48,7 +48,7 @@
 <?php endif; ?>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-lg-3">
         <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">My Active Jobs</div>
@@ -56,7 +56,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-lg-3">
         <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">In Progress</div>
@@ -64,7 +64,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-lg-3">
         <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Needs Attention</div>
@@ -72,7 +72,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-6 col-lg-3">
         <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Closed Today</div>

@@ -88,21 +88,23 @@ $searchQueryBase = [
         <?php endif; ?>
     </nav>
 </div>
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead class="table-light">
-        <tr>
-            <th>Job #</th>
-            <th>Received</th>
-            <th>Customer</th>
-            <th>Location</th>
-            <th>Technician</th>
-            <th>Status</th>
-            <th>Issue</th>
-            <th>PO Number</th>
-        </tr>
-        </thead>
-        <tbody>
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Job #</th>
+                    <th>Received</th>
+                    <th>Customer</th>
+                    <th>Location</th>
+                    <th>Technician</th>
+                    <th>Status</th>
+                    <th>Issue</th>
+                    <th>PO Number</th>
+                </tr>
+                </thead>
+                <tbody>
         <?php if (empty($calls)): ?>
             <tr>
                 <td colspan="8" class="text-center text-muted">No calls found.</td>
@@ -121,6 +123,8 @@ $searchQueryBase = [
                 </tr>
             <?php endforeach; ?>
         <?php endif; ?>
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

@@ -70,35 +70,35 @@ if ($defaultFilter === '') {
 <?php endif; ?>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
                 <div class="small text-muted">Open Calls</div>
-                <div class="h4 mb-0"><?= escape((string)($stats['open_calls'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['open_calls'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
                 <div class="small text-muted">Unassigned Open</div>
-                <div class="h4 mb-0"><?= escape((string)($stats['unassigned_open_calls'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['unassigned_open_calls'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
                 <div class="small text-muted">Closed Today</div>
-                <div class="h4 mb-0"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card h-100">
+            <div class="card-body">
                 <div class="small text-muted">Closed This Week</div>
-                <div class="h4 mb-0"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
             </div>
         </div>
     </div>

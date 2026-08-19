@@ -2,38 +2,41 @@
 /** @var array<string, int> $stats */
 /** @var array<int, array<string, mixed>> $recentActivity */
 ?>
-<h1 class="h3 mb-4">Administration Dashboard</h1>
+<div class="mb-4">
+    <h1 class="h3 mb-1">Administration Dashboard</h1>
+    <p class="text-muted mb-0">Overview of open work and recent activity across all service calls.</p>
+</div>
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Open Calls</div>
-                <div class="display-6 mb-0"><?= escape((string)($stats['open_calls'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['open_calls'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Unassigned Open</div>
-                <div class="display-6 mb-0"><?= escape((string)($stats['unassigned_open_calls'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['unassigned_open_calls'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Closed Today</div>
-                <div class="display-6 mb-0"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['completed_today'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card stat-card h-100">
             <div class="card-body">
                 <div class="small text-muted">Closed This Week</div>
-                <div class="display-6 mb-0"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
+                <div class="stat-value"><?= escape((string)($stats['completed_this_week'] ?? 0)) ?></div>
             </div>
         </div>
     </div>
