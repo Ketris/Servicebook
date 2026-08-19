@@ -8,6 +8,7 @@ $backupRetention = (string)($settings['backup_retention_days'] ?? '60');
 $backupCadence = (string)($settings['backup_cadence'] ?? 'daily');
 $backupAutoEnabled = (string)($settings['backup_auto_enabled'] ?? '1') === '1';
 $savedViewsEnabled = (string)($settings['saved_views_enabled'] ?? '0') === '1';
+$bulkManagementEnabled = (string)($settings['bulk_management_enabled'] ?? '0') === '1';
 $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
 ?>
 <div class="row justify-content-center">
@@ -75,6 +76,17 @@ $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
                             <label class="form-check-label" for="saved_views_enabled">Enable Saved Views beta feature</label>
                         </div>
                         <div class="form-text">When disabled, users will not see or be able to use Saved Views on the calls page.</div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="bulk_management_enabled">Bulk Management (Beta)</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" value="1" id="bulk_management_enabled" name="bulk_management_enabled" <?= $bulkManagementEnabled ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="bulk_management_enabled">Enable Bulk Management beta feature</label>
+                        </div>
+                        <div class="form-text">When disabled, users will not see or be able to bulk update calls on the calls page.</div>
                     </div>
 
                     <hr>

@@ -1,5 +1,6 @@
 <?php
 $savedViewsEnabled = !empty($savedViewsEnabled);
+$bulkManagementEnabled = !empty($bulkManagementEnabled);
 $defaultFilter = trim((string)($defaultFilter ?? 'incomplete'));
 if ($defaultFilter === '') {
     $defaultFilter = 'incomplete';
@@ -162,7 +163,7 @@ $filterLabel = $filter === 'all' ? 'all' : (
         <div class="alert alert-info mb-3" role="alert">
             Bulk updates are limited to office and admin roles.
         </div>
-    <?php else: ?>
+    <?php elseif ($bulkManagementEnabled): ?>
     <form method="post" id="bulk-action-form">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="bulk_update">
@@ -209,7 +210,7 @@ $filterLabel = $filter === 'all' ? 'all' : (
     </form>
     <?php endif; ?>
 
-    <?php if (($user['role'] ?? '') === 'Technician'): ?>
+    <?php if (($user['role'] ?? '') === 'Technician' || !$bulkManagementEnabled): ?>
         <table class="table table-hover align-middle">
             <thead class="table-light">
             <tr>
@@ -308,7 +309,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         <?php endif; ?>
     </nav>
 </div>
-<?php if (($user['role'] ?? '') !== 'Technician'): ?>
+<?php if ($bulkManagementEnabled && ($user['role'] ?? '') !== 'Technician'): ?>
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <div>
