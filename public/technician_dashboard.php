@@ -2,16 +2,24 @@
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
+require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
 
 Auth::requireLogin();
 $user = Auth::currentUser();
-if (($user['role'] ?? '') !== 'Technician') {
+$isAdministrator = ($user['role'] ?? '') === 'Administrator';
+$ownTechnicianId = (int)($user['technician_id'] ?? 0);
+
+if (!$isAdministrator && $ownTechnicianId <= 0) {
     header('Location: ' . url('public/index.php'));
     exit;
 }
 
-$technicianId = (int)($user['technician_id'] ?? 0);
+$technicianOptions = $isAdministrator ? Technician::findAllActive() : [];
+$technicianId = $isAdministrator
+    ? (int)($_GET['technician_id'] ?? $ownTechnicianId)
+    : $ownTechnicianId;
+
 $statuses = ServiceCall::getStatusOptions();
 $errors = [];
 $successMessage = '';
@@ -30,17 +38,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = trim($_POST['action'] ?? '');
         $callId = (int)($_POST['call_id'] ?? 0);
         $expectedUpdatedAt = trim((string)($_POST['expected_updated_at'] ?? ''));
+        // Admins act on behalf of whichever technician queue they are viewing.
+        $actingTechnicianId = $isAdministrator
+            ? (int)($_POST['viewing_technician_id'] ?? $technicianId)
+            : $ownTechnicianId;
+        $technicianId = $actingTechnicianId;
+        $redirectSuffix = $isAdministrator && $actingTechnicianId > 0 ? '&technician_id=' . $actingTechnicianId : '';
 
         try {
             if ($action === 'claim_job') {
-                ServiceCall::claimForTechnician($callId, $technicianId, $user, $expectedUpdatedAt);
-                header('Location: ' . url('public/technician_dashboard.php?notice=claimed'));
+                ServiceCall::claimForTechnician($callId, $actingTechnicianId, $user, $expectedUpdatedAt);
+                header('Location: ' . url('public/technician_dashboard.php?notice=claimed' . $redirectSuffix));
                 exit;
             } elseif ($action === 'update_job') {
                 $status = trim($_POST['status'] ?? '');
                 $note = trim($_POST['technician_note'] ?? '');
-                ServiceCall::updateAssignedTechnicianJob($callId, $technicianId, $status, $note, $user, $expectedUpdatedAt);
-                header('Location: ' . url('public/technician_dashboard.php?notice=updated'));
+                ServiceCall::updateAssignedTechnicianJob($callId, $actingTechnicianId, $status, $note, $user, $expectedUpdatedAt);
+                header('Location: ' . url('public/technician_dashboard.php?notice=updated' . $redirectSuffix));
                 exit;
             } else {
                 $errors['form'] = 'Unknown dashboard action.';
@@ -68,7 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stats = ServiceCall::getTechnicianDashboardStats($technicianId);
 $activeJobs = ServiceCall::findActiveByTechnician($technicianId);
 $claimableJobs = $technicianId > 0 ? ServiceCall::findClaimableOpenJobs() : [];
-$workload = ServiceCall::getTechnicianWorkloadSummary();
+
+$viewingTechnicianName = '';
+foreach ($technicianOptions as $technician) {
+    if ((int)$technician['id'] === $technicianId) {
+        $viewingTechnicianName = (string)$technician['name'];
+        break;
+    }
+}
 
 Template::render('pages/technician_dashboard', [
     'title' => 'My Jobs',
@@ -80,5 +101,10 @@ Template::render('pages/technician_dashboard', [
     'errors' => $errors,
     'successMessage' => $successMessage,
     'technicianLinked' => $technicianId > 0,
-    'workload' => $workload,
+    'isAdministrator' => $isAdministrator,
+    'technicianOptions' => $technicianOptions,
+    'technicianId' => $technicianId,
+    'isViewingOwnQueue' => $technicianId > 0 && $technicianId === $ownTechnicianId,
+    'viewingTechnicianName' => $viewingTechnicianName,
 ], 'layouts/app');
+

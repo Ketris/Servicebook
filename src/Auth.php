@@ -120,6 +120,8 @@ class Auth
             exit;
         }
 
+        self::refreshSessionUser();
+
         try {
             BackupManager::runScheduledIfDue();
         } catch (Throwable $exception) {
@@ -127,6 +129,34 @@ class Auth
                 'exception' => $exception->getMessage(),
             ]);
         }
+    }
+
+    // Keeps role/technician_id/active in sync with the DB so admin edits apply without re-login.
+    private static function refreshSessionUser(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (!is_array($sessionUser) || empty($sessionUser['id'])) {
+            return;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => (int)$sessionUser['id']]);
+        $current = $stmt->fetch();
+
+        if (!$current || !$current['active']) {
+            self::logout();
+            header('Location: ' . url('public/login.php'));
+            exit;
+        }
+
+        $_SESSION['user'] = [
+            'id' => $current['id'],
+            'username' => $current['username'],
+            'display_name' => $current['display_name'],
+            'role' => $current['role'],
+            'technician_id' => $current['technician_id'],
+        ];
     }
 
     public static function requireAdmin(): void

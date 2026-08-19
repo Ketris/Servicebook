@@ -28,7 +28,7 @@ class User
             throw new InvalidArgumentException('Invalid role selected.');
         }
 
-        $technicianId = ($role === 'Technician' && !empty($data['technician_id'])) ? (int)$data['technician_id'] : null;
+        $technicianId = !empty($data['technician_id']) ? (int)$data['technician_id'] : null;
 
         if ($id === null) {
             $stmt = $pdo->prepare(

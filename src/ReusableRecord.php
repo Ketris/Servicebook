@@ -38,8 +38,10 @@ class ReusableRecord
         $params = [];
         $where = '';
         if (trim($search) !== '') {
-            $where = 'WHERE LOWER(l.location_name) LIKE :term OR LOWER(COALESCE(c.customer_name, "")) LIKE :term';
-            $params[':term'] = '%' . mb_strtolower(trim($search)) . '%';
+            $where = 'WHERE LOWER(l.location_name) LIKE :term1 OR LOWER(COALESCE(c.customer_name, "")) LIKE :term2';
+            $term = '%' . mb_strtolower(trim($search)) . '%';
+            $params[':term1'] = $term;
+            $params[':term2'] = $term;
         }
 
         $stmt = $pdo->prepare(

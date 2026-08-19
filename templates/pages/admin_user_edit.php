@@ -50,6 +50,7 @@
                         <option value="<?= escape((string)$technician['id']) ?>" <?= (string)$values['technician_id'] === (string)$technician['id'] ? 'selected' : '' ?>><?= escape($technician['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <div class="form-text">Optional for Office Staff/Administrator accounts - grants access to that technician's "My Jobs" dashboard.</div>
                 <?php if (isset($errors['technician_id'])): ?>
                     <div class="invalid-feedback d-block"><?= escape($errors['technician_id']) ?></div>
                 <?php endif; ?>

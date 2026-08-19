@@ -1,7 +1,19 @@
 <div class="app-page-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
     <div>
-        <h1 class="h3 mb-1">My Jobs</h1>
-        <p class="text-muted mb-0">A technician-focused view of the work currently assigned to you, with quick updates and optional claim actions.</p>
+        <h1 class="h3 mb-1"><?= $isAdministrator && !$isViewingOwnQueue && $viewingTechnicianName !== '' ? escape($viewingTechnicianName . "'s Dashboard") : 'My Dashboard' ?></h1>
+        <p class="text-muted mb-0">A technician-focused view of the work currently assigned<?= $isAdministrator && !$isViewingOwnQueue ? ' to the selected technician' : ' to you' ?>, with quick updates and optional claim actions.</p>
+        <?php if ($isAdministrator): ?>
+            <form method="get" class="d-flex align-items-center gap-2 mt-2">
+                <label class="small text-muted mb-0" for="technician_id">Viewing</label>
+                <select class="form-select form-select-sm w-auto" id="technician_id" name="technician_id" onchange="this.form.submit()">
+                    <option value="0" <?= $technicianId === 0 ? 'selected' : '' ?>>Select a technician...</option>
+                    <?php foreach ($technicianOptions as $technicianOption): ?>
+                        <option value="<?= escape((string)$technicianOption['id']) ?>" <?= $technicianId === (int)$technicianOption['id'] ? 'selected' : '' ?>><?= escape($technicianOption['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <noscript><button class="btn btn-sm btn-outline-secondary" type="submit">Go</button></noscript>
+            </form>
+        <?php endif; ?>
     </div>
     <div class="d-flex flex-wrap gap-2">
         <?php
@@ -29,7 +41,9 @@
 
 <?php if (!$technicianLinked): ?>
     <div class="alert alert-warning" role="alert">
-        Your login is not linked to a technician profile yet. An administrator needs to link this account before you can claim or manage jobs from this dashboard.
+        <?= $isAdministrator
+            ? 'Select a technician above to view and manage their job queue.'
+            : 'Your login is not linked to a technician profile yet. An administrator needs to link this account before you can claim or manage jobs from this dashboard.' ?>
     </div>
 <?php endif; ?>
 
@@ -137,6 +151,7 @@
                                 <input type="hidden" name="action" value="update_job">
                                 <input type="hidden" name="call_id" value="<?= escape((string)$job['id']) ?>">
                                 <input type="hidden" name="expected_updated_at" value="<?= escape((string)($job['updated_at'] ?? '')) ?>">
+                                <input type="hidden" name="viewing_technician_id" value="<?= escape((string)$technicianId) ?>">
                                 <div class="col-md-4">
                                     <label class="form-label" for="status_<?= escape((string)$job['id']) ?>">Status</label>
                                     <select class="form-select" id="status_<?= escape((string)$job['id']) ?>" name="status">
@@ -169,44 +184,6 @@
     </div>
 
     <div class="col-12 col-xxl-4">
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white">
-                <h2 class="h6 mb-0">Team Availability</h2>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead class="table-light">
-                        <tr>
-                            <th>Technician</th>
-                            <th>Open</th>
-                            <th>In Progress</th>
-                            <th>Load</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($workload as $worker): ?>
-                            <tr>
-                                <td><?= escape($worker['name']) ?></td>
-                                <td><?= escape((string)($worker['open_jobs'] ?? 0)) ?></td>
-                                <td><?= escape((string)($worker['in_progress_jobs'] ?? 0)) ?></td>
-                                <td>
-                                    <?php
-                                    $availability = (string)($worker['availability'] ?? 'Normal Load');
-                                    $availabilityClass = $availability === 'Heavy Load'
-                                        ? 'text-bg-warning'
-                                        : ($availability === 'Available' ? 'text-bg-success' : 'text-bg-primary');
-                                    ?>
-                                    <span class="badge <?= $availabilityClass ?>"><?= escape($availability) ?></span>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
             <div>
                 <h2 class="h5 mb-1">Unassigned Open Jobs</h2>
@@ -242,6 +219,7 @@
                                         <input type="hidden" name="action" value="claim_job">
                                         <input type="hidden" name="call_id" value="<?= escape((string)$job['id']) ?>">
                                         <input type="hidden" name="expected_updated_at" value="<?= escape((string)($job['updated_at'] ?? '')) ?>">
+                                        <input type="hidden" name="viewing_technician_id" value="<?= escape((string)$technicianId) ?>">
                                         <button type="submit" class="btn btn-success">Claim Job</button>
                                     </form>
                                 <?php endif; ?>

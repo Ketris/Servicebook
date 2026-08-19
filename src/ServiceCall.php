@@ -120,14 +120,19 @@ class ServiceCall
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT
-                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS active_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::notClosedStatusesSql('status') . " AND status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id AND " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN assigned_tech = :technician_id_1 AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS active_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id_2 AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id_3 AND " . self::notClosedStatusesSql('status') . " AND status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_jobs,
+                SUM(CASE WHEN assigned_tech = :technician_id_4 AND " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
                 SUM(CASE WHEN assigned_tech IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls
              FROM service_calls"
         );
-        $stmt->execute([':technician_id' => $technicianId]);
+        $stmt->execute([
+            ':technician_id_1' => $technicianId,
+            ':technician_id_2' => $technicianId,
+            ':technician_id_3' => $technicianId,
+            ':technician_id_4' => $technicianId,
+        ]);
         $row = $stmt->fetch() ?: [];
 
         return [
