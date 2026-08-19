@@ -165,6 +165,41 @@ $documentTitle = $pageTitle === '' ? $siteTitle : $pageTitle . ' · ' . $siteTit
             margin-bottom: 1.5rem;
         }
     </style>
+    <script>
+        window.ServicebookHotkeys = (() => {
+            const shortcuts = new Map();
+
+            function isEditableTarget(target) {
+                return target instanceof HTMLElement && (
+                    target.isContentEditable ||
+                    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+                );
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey) {
+                    return;
+                }
+
+                const shortcut = shortcuts.get(event.key.toLowerCase());
+                if (!shortcut || (isEditableTarget(event.target) && !shortcut.allowInEditable)) {
+                    return;
+                }
+
+                event.preventDefault();
+                shortcut.action(event);
+            });
+
+            return {
+                register(key, action, options = {}) {
+                    shortcuts.set(key.toLowerCase(), {
+                        action,
+                        allowInEditable: options.allowInEditable === true,
+                    });
+                },
+            };
+        })();
+    </script>
 </head>
 <body>
 <?php include __DIR__ . '/../partials/navbar.php'; ?>
