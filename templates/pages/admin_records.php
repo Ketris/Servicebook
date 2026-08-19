@@ -60,21 +60,33 @@
         </div>
 
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h2 class="h6 mb-0">Customer Records</h2>
-                <span class="badge text-bg-light border"><?= count($customers) ?> shown</span>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+                <h2 class="h6 mb-0 flex-shrink-0">Customer Records</h2>
+                <div class="position-relative filter-box flex-grow-1">
+                    <input type="search" class="form-control form-control-sm" id="customerFilterInput" placeholder="Filter records" autocomplete="off">
+                    <button type="button" class="filter-clear-btn" id="customerFilterClear" aria-label="Clear filter">&times;</button>
+                </div>
+                <span class="badge text-bg-light border flex-shrink-0" id="customerShownBadge" data-total="<?= count($customers) ?>"><?= count($customers) ?> shown</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle mb-0">
-                        <tbody>
+                        <tbody id="customerTableBody">
                             <?php if (empty($customers)): ?>
                                 <tr>
                                     <td colspan="4" class="text-center text-muted">No customers found.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($customers as $customer): ?>
-                                    <tr>
+                                    <?php
+                                        $customerSearch = strtolower(
+                                            $customer['customer_name']
+                                            . ' ' . (string)($customer['default_contact'] ?? '')
+                                            . ' ' . (string)($customer['default_phone'] ?? '')
+                                            . ' ' . (string)($customer['default_email'] ?? '')
+                                        );
+                                    ?>
+                                    <tr data-search="<?= escape($customerSearch) ?>">
                                         <td colspan="4">
                                             <form method="post" class="row g-2 align-items-end">
                                                 <?= csrf_field() ?>
@@ -149,21 +161,36 @@
         </div>
 
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h2 class="h6 mb-0">Location Records</h2>
-                <span class="badge text-bg-light border"><?= count($locations) ?> shown</span>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
+                <h2 class="h6 mb-0 flex-shrink-0">Location Records</h2>
+                <div class="position-relative filter-box flex-grow-1">
+                    <input type="search" class="form-control form-control-sm" id="locationFilterInput" placeholder="Filter records" autocomplete="off">
+                    <button type="button" class="filter-clear-btn" id="locationFilterClear" aria-label="Clear filter">&times;</button>
+                </div>
+                <span class="badge text-bg-light border flex-shrink-0" id="locationShownBadge" data-total="<?= count($locations) ?>"><?= count($locations) ?> shown</span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle mb-0">
-                        <tbody>
+                        <tbody id="locationTableBody">
                             <?php if (empty($locations)): ?>
                                 <tr>
                                     <td colspan="4" class="text-center text-muted">No locations found.</td>
                                 </tr>
                             <?php else: ?>
+                                <?php $customerNamesById = array_column($customers, 'customer_name', 'id'); ?>
                                 <?php foreach ($locations as $location): ?>
-                                    <tr>
+                                    <?php
+                                        $linkedCustomerName = (string)($customerNamesById[(int)($location['customer_record_id'] ?? 0)] ?? '');
+                                        $locationSearch = strtolower(
+                                            $location['location_name']
+                                            . ' ' . (string)($location['default_contact'] ?? '')
+                                            . ' ' . (string)($location['default_phone'] ?? '')
+                                            . ' ' . (string)($location['default_email'] ?? '')
+                                            . ' ' . $linkedCustomerName
+                                        );
+                                    ?>
+                                    <tr data-search="<?= escape($locationSearch) ?>">
                                         <td colspan="4">
                                             <form method="post" class="row g-2 align-items-end">
                                                 <?= csrf_field() ?>
@@ -209,3 +236,73 @@
         </div>
     </div>
 </div>
+
+<style>
+    .filter-box {
+        max-width: 260px;
+    }
+
+    .filter-box .form-control {
+        padding-right: 1.75rem;
+    }
+
+    .filter-clear-btn {
+        display: none;
+        position: absolute;
+        top: 50%;
+        right: 0.5rem;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        line-height: 1;
+        color: #6c757d;
+        font-size: 1rem;
+        padding: 0;
+    }
+
+    .filter-clear-btn:hover {
+        color: #212529;
+    }
+</style>
+<script>
+    (function () {
+        function setupRecordFilter(inputId, clearId, bodyId, badgeId) {
+            var input = document.getElementById(inputId);
+            var clearBtn = document.getElementById(clearId);
+            var tbody = document.getElementById(bodyId);
+            var badge = document.getElementById(badgeId);
+            if (!input || !clearBtn || !tbody || !badge) {
+                return;
+            }
+
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-search]'));
+            var total = rows.length;
+
+            function apply() {
+                var term = input.value.trim().toLowerCase();
+                clearBtn.style.display = term ? 'block' : 'none';
+
+                var visible = 0;
+                rows.forEach(function (row) {
+                    var matches = !term || row.getAttribute('data-search').indexOf(term) !== -1;
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) {
+                        visible++;
+                    }
+                });
+
+                badge.textContent = term ? (visible + ' of ' + total + ' shown') : (total + ' shown');
+            }
+
+            input.addEventListener('input', apply);
+            clearBtn.addEventListener('click', function () {
+                input.value = '';
+                apply();
+                input.focus();
+            });
+        }
+
+        setupRecordFilter('customerFilterInput', 'customerFilterClear', 'customerTableBody', 'customerShownBadge');
+        setupRecordFilter('locationFilterInput', 'locationFilterClear', 'locationTableBody', 'locationShownBadge');
+    })();
+</script>
