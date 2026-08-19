@@ -12,6 +12,9 @@ class AppSettings
         'backup_cadence' => 'daily',
         'backup_retention_days' => '60',
         'backup_last_run_at' => '',
+        'backup_last_attempt_at' => '',
+        'backup_last_attempt_status' => '',
+        'backup_last_attempt_error' => '',
     ];
 
     public static function defaults(): array

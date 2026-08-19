@@ -110,3 +110,26 @@ if (!function_exists('status_badge_class')) {
         };
     }
 }
+
+if (!function_exists('humanize_field_name')) {
+    function humanize_field_name(string $fieldName): string
+    {
+        return ucwords(str_replace('_', ' ', $fieldName));
+    }
+}
+
+if (!function_exists('describe_activity_entry')) {
+    function describe_activity_entry(array $entry): string
+    {
+        $fieldName = (string)($entry['field_name'] ?? '');
+        $note = trim((string)($entry['note'] ?? ''));
+
+        if (!empty($entry['service_call_id'])) {
+            $job = (string)($entry['job_number'] ?? ('Call #' . $entry['service_call_id']));
+            return $job . ' — ' . humanize_field_name($fieldName);
+        }
+
+        // System-level events almost always carry a human-readable note; fall back to the field name otherwise.
+        return $note !== '' ? $note : humanize_field_name($fieldName);
+    }
+}
