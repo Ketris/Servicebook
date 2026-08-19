@@ -6,7 +6,7 @@ It is designed to replace a handwritten dispatch notebook while preserving speed
 
 ## Current Status
 
-Current as of 2026-08-07.
+Current as of 2026-08-19.
 
 Implemented highlights:
 - Service call intake, editing, assignment, and status workflow
@@ -15,6 +15,7 @@ Implemented highlights:
 - Open/unassigned/closed filters and dedicated search
 - Pagination on call list, search, and activity history
 - Saved views, recent views, bulk updates, CSV export, and print views
+- Shared keyboard shortcut handling; press N on the call list to create a new call
 - Reusable customer and location records with admin merge/edit tools
 - Activity logging for call-level changes and system-level admin actions
 - Authentication hardening (CSRF, rate limiting/lockouts, session hardening)

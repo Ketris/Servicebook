@@ -637,6 +637,10 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
 
     applySavedSort();
 
+    ServicebookHotkeys.register('n', () => {
+        window.location.href = <?= json_encode(url('public/new_call.php')) ?>;
+    });
+
 })();
 
 function toggleAllRows(checked) {
