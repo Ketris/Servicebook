@@ -2,6 +2,7 @@
 require_once __DIR__ . '/AppSettings.php';
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Logger.php';
+require_once __DIR__ . '/ServiceCall.php';
 
 class BackupManager
 {
@@ -37,13 +38,35 @@ class BackupManager
             }
 
             try {
-                self::createBackup('auto', $retentionDays);
+                $backup = self::createBackup('auto', $retentionDays);
                 self::setLastRunAt(date('Y-m-d H:i:s'));
+                self::logAutoBackupEvent((string)($backup['filename'] ?? ''), null);
+                self::recordLastAttempt('success', '');
             } finally {
                 self::releaseScheduleLock($lockHandle);
             }
         } catch (Throwable $exception) {
             Logger::error('Automatic backup failed', [
+                'exception' => $exception->getMessage(),
+            ]);
+            self::logAutoBackupEvent(null, $exception->getMessage());
+            self::recordLastAttempt('failed', $exception->getMessage());
+        }
+    }
+
+    // A failed history write must never mask the underlying backup outcome.
+    private static function logAutoBackupEvent(?string $filename, ?string $failureMessage): void
+    {
+        try {
+            ServiceCall::logSystemEvent(
+                null,
+                'backup_auto',
+                null,
+                $failureMessage === null ? $filename : null,
+                $failureMessage === null ? 'Automatic backup created' : ('Automatic backup failed: ' . $failureMessage)
+            );
+        } catch (Throwable $exception) {
+            Logger::error('Unable to record automatic backup activity log entry', [
                 'exception' => $exception->getMessage(),
             ]);
         }
@@ -363,6 +386,7 @@ class BackupManager
             return;
         }
 
+        $pruned = 0;
         foreach ($files as $filePath) {
             $mtime = filemtime($filePath);
             if ($mtime === false) {
@@ -371,8 +395,21 @@ class BackupManager
 
             $fileDate = (new DateTimeImmutable())->setTimestamp($mtime);
             if ($fileDate < $cutoff) {
-                @unlink($filePath);
+                if (@unlink($filePath)) {
+                    $pruned++;
+                } else {
+                    Logger::warning('Unable to prune expired backup file', [
+                        'filename' => basename($filePath),
+                    ]);
+                }
             }
+        }
+
+        if ($pruned > 0) {
+            Logger::info('Pruned expired backup files', [
+                'count' => $pruned,
+                'retention_days' => $retentionDays,
+            ]);
         }
     }
 
@@ -417,15 +454,34 @@ class BackupManager
 
     private static function setLastRunAt(string $timestamp): void
     {
+        self::upsertSetting('backup_last_run_at', $timestamp);
+    }
+
+    // Tracks every scheduled attempt (success or failure), separate from backup_last_run_at which only advances on success.
+    private static function recordLastAttempt(string $status, string $message): void
+    {
+        try {
+            self::upsertSetting('backup_last_attempt_at', date('Y-m-d H:i:s'));
+            self::upsertSetting('backup_last_attempt_status', $status);
+            self::upsertSetting('backup_last_attempt_error', mb_substr($message, 0, 500));
+        } catch (Throwable $exception) {
+            Logger::error('Unable to record automatic backup attempt status', [
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+    }
+
+    private static function upsertSetting(string $name, string $value): void
+    {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             'INSERT INTO settings (name, value) VALUES (:name, :insert_value)
              ON DUPLICATE KEY UPDATE value = :update_value'
         );
         $stmt->execute([
-            ':name' => 'backup_last_run_at',
-            ':insert_value' => $timestamp,
-            ':update_value' => $timestamp,
+            ':name' => $name,
+            ':insert_value' => $value,
+            ':update_value' => $value,
         ]);
     }
 

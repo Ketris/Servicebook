@@ -136,11 +136,13 @@ Audit and logging:
 Backup and restore:
 - compressed JSON snapshot backups (.json.gz)
 - automatic backups by cadence (daily/weekly/monthly)
-- retention-day pruning
+- retention-day pruning, with pruning outcomes recorded in the application log
 - manual backup creation
 - backup download
 - restore from stored backup
 - restore from uploaded backup file
+- automatic backups log a system-level activity entry on both success and failure (with error detail on failure), matching manual backup/restore logging
+- settings page surfaces the last automatic backup attempt (timestamp, outcome, error if failed)
 
 ## Operational Constraints
 

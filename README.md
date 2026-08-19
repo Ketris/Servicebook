@@ -69,6 +69,12 @@ Admin settings allow:
 - restore from stored backups
 - restore from uploaded .json.gz backups
 
+Activity logging:
+- manual backup/restore actions log a system-level activity entry (admin/activity.php)
+- automatic backups also log an activity entry on both success and failure, including the error message on failure
+- the settings page shows the last automatic backup attempt (timestamp, success/failure, and error if failed), separate from the last successful run used for cadence scheduling
+- expired backup pruning (manual or automatic) is recorded in the application log, including any files that failed to delete
+
 ## Repository Notes
 
 - Generated logs are ignored by git.

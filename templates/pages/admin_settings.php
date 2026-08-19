@@ -10,6 +10,9 @@ $backupAutoEnabled = (string)($settings['backup_auto_enabled'] ?? '1') === '1';
 $savedViewsEnabled = (string)($settings['saved_views_enabled'] ?? '0') === '1';
 $bulkManagementEnabled = (string)($settings['bulk_management_enabled'] ?? '0') === '1';
 $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
+$lastBackupAttemptAt = trim((string)($settings['backup_last_attempt_at'] ?? ''));
+$lastBackupAttemptStatus = trim((string)($settings['backup_last_attempt_status'] ?? ''));
+$lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?? ''));
 ?>
 <div class="row justify-content-center">
     <div class="col-xl-10">
@@ -118,6 +121,15 @@ $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
                     <div class="small text-muted mt-2">
                         Last automatic backup run: <?= $lastBackupRun !== '' ? escape($lastBackupRun) : 'Never' ?>
                     </div>
+                    <?php if ($lastBackupAttemptAt !== ''): ?>
+                        <div class="small mt-1 <?= $lastBackupAttemptStatus === 'failed' ? 'text-danger' : 'text-muted' ?>">
+                            Last automatic backup attempt: <?= escape($lastBackupAttemptAt) ?>
+                            — <?= $lastBackupAttemptStatus === 'failed' ? 'Failed' : 'Succeeded' ?>
+                            <?php if ($lastBackupAttemptStatus === 'failed' && $lastBackupAttemptError !== ''): ?>
+                                (<?= escape($lastBackupAttemptError) ?>)
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="text-end mt-4">
                         <button type="submit" class="btn btn-primary">Save Settings</button>
