@@ -1,20 +1,12 @@
 <?php
-/** @var string $search */
 /** @var array<int, array<string, mixed>> $customers */
 /** @var array<int, array<string, mixed>> $locations */
 /** @var string $success */
 /** @var string $error */
 ?>
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-    <div>
-        <h1 class="h3 mb-1">Record Management</h1>
-        <p class="text-muted mb-0">Edit customer and location defaults, and merge duplicates to keep data clean.</p>
-    </div>
-    <form method="get" class="d-flex gap-2">
-        <input type="search" class="form-control" name="search" placeholder="Search records" value="<?= escape($search) ?>">
-        <button type="submit" class="btn btn-primary">Search</button>
-        <a class="btn btn-outline-secondary" href="<?= url('admin/records.php') ?>">Reset</a>
-    </form>
+<div class="mb-4">
+    <h1 class="h3 mb-1">Record Management</h1>
+    <p class="text-muted mb-0">Edit customer and location defaults, and merge duplicates to keep data clean.</p>
 </div>
 
 <?php if ($success !== ''): ?>

@@ -18,7 +18,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
     <div class="col-xl-10">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h1 class="h3">System Settings</h1>
+                <h1 class="h3 mb-1">System Settings</h1>
                 <p class="text-muted mb-0">Configure branding, backup cadence, retention, and restore options.</p>
             </div>
             <a class="btn btn-secondary" href="<?= url('admin/index.php') ?>">Back</a>
@@ -149,7 +149,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
+                    <table class="table table-sm table-hover align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>File</th>
