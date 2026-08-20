@@ -100,8 +100,38 @@ CREATE TABLE IF NOT EXISTS saved_views (
     INDEX (role_scope),
     INDEX (is_default)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id INT UNSIGNED NOT NULL,
+    preference_key VARCHAR(100) NOT NULL,
+    preference_value TEXT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, preference_key),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 SQL
     );
+
+        $preferenceKeyColumns = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'preference_key'")->fetchAll();
+        if (empty($preferenceKeyColumns)) {
+            $pdo->exec(<<<'SQL'
+CREATE TABLE user_preferences_migrated (
+    user_id INT UNSIGNED NOT NULL,
+    preference_key VARCHAR(100) NOT NULL,
+    preference_value TEXT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, preference_key),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL
+            );
+            $pdo->exec("INSERT INTO user_preferences_migrated (user_id, preference_key, preference_value)
+                        SELECT user_id, 'calls.default_filter', default_filter FROM user_preferences");
+            $pdo->exec("INSERT INTO user_preferences_migrated (user_id, preference_key, preference_value)
+                        SELECT user_id, 'calls.default_per_page', CAST(default_per_page AS CHAR) FROM user_preferences");
+            $pdo->exec('DROP TABLE user_preferences');
+            $pdo->exec('RENAME TABLE user_preferences_migrated TO user_preferences');
+        }
 
         $columns = $pdo->query("SHOW COLUMNS FROM users LIKE 'technician_id'")->fetchAll();
         if (empty($columns)) {

@@ -112,24 +112,35 @@ $filterLabel = $filter === 'all' ? 'all' : (
         )
     )
 );
+$isUnsearchedNonDefaultList = $search === ''
+    && ($filter !== $defaultFilter || (int)$perPage !== (int)($defaultPerPage ?? 50));
 ?>
-<?php if ($search !== '' || $filter !== $defaultFilter): ?>
-    <div class="mb-3">
-        <small class="text-muted">
-            <?php if ($search !== ''): ?>
-                Showing calls matching <strong><?= escape($search) ?></strong>
-                <?php $showingStatus = true; ?>
+<div class="mb-3">
+    <small class="text-muted">
+        <?php if ($search !== ''): ?>
+            Showing calls matching <strong><?= escape($search) ?></strong>
+            <?php $showingStatus = true; ?>
+        <?php endif; ?>
+        <?php if ($filter !== $defaultFilter || !$showingStatus): ?>
+            <?php if ($showingStatus): ?>
+                and
             <?php endif; ?>
-            <?php if ($filter !== $defaultFilter): ?>
-                <?php if ($showingStatus): ?>
-                    and
-                <?php endif; ?>
-                using filter <strong><?= escape($filterLabel) ?></strong>
-            <?php endif; ?>
+            using filter <strong><?= escape($filterLabel) ?></strong>
+        <?php endif; ?>
+        <?php if ($search !== '' || $filter !== $defaultFilter): ?>
             . (<a href="<?= url('public/index.php') ?>" class="text-decoration-none">Reset</a>)
-        </small>
-    </div>
-<?php endif; ?>
+        <?php endif; ?>
+        <?php if ($isUnsearchedNonDefaultList): ?>
+            <form method="post" action="<?= url('public/index.php') ?>" class="d-inline" id="save-list-defaults-form">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="save_list_defaults">
+                <input type="hidden" name="default_filter" value="<?= escape($filter) ?>">
+                <input type="hidden" name="default_per_page" value="<?= escape((string)$perPage) ?>">
+                (<a href="#" class="text-decoration-none" onclick="document.getElementById('save-list-defaults-form').submit(); return false;">set default</a>)
+            </form>
+        <?php endif; ?>
+    </small>
+</div>
 <div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap">
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <a class="btn btn-primary" href="<?= url('public/new_call.php') ?>">New Call</a>
