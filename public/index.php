@@ -7,6 +7,7 @@ require_once __DIR__ . '/../src/SavedView.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
+require_once __DIR__ . '/../src/UserPreference.php';
 
 Installation::redirectToInstallerIfNeeded();
 Auth::requireLogin();
@@ -14,14 +15,29 @@ $user = Auth::currentUser();
 $search = trim($_GET['search'] ?? '');
 $isAdministrator = (string)($user['role'] ?? '') === 'Administrator';
 $defaultFilter = $isAdministrator ? 'all' : 'incomplete';
-$filter = trim((string)($_GET['filter'] ?? ''));
+$userDefaults = UserPreference::getMany((int)($user['id'] ?? 0), [
+    'calls.default_filter' => $defaultFilter,
+    'calls.default_per_page' => '50',
+]);
+$userDefaults = [
+    'filter' => (string)($userDefaults['calls.default_filter'] ?? $defaultFilter),
+    'per_page' => (int)($userDefaults['calls.default_per_page'] ?? 50),
+];
+if (!in_array($userDefaults['filter'], ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+    $userDefaults['filter'] = $defaultFilter;
+}
+if (!in_array($userDefaults['per_page'], [25, 50, 100, 250], true)) {
+    $userDefaults['per_page'] = 50;
+}
+$defaultFilter = $userDefaults['filter'];
+$filter = trim((string)($_GET['filter'] ?? $userDefaults['filter']));
 if ($filter === '') {
-    $filter = $defaultFilter;
+    $filter = $userDefaults['filter'];
 }
 $allowedPerPage = [25, 50, 100, 250];
-$perPage = (int)($_GET['per_page'] ?? 50);
+$perPage = (int)($_GET['per_page'] ?? $userDefaults['per_page']);
 if (!in_array($perPage, $allowedPerPage, true)) {
-    $perPage = 50;
+    $perPage = $userDefaults['per_page'];
 }
 $page = (int)($_GET['page'] ?? 1);
 if ($page < 1) {
@@ -106,6 +122,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'user_id' => $user['id'] ?? null,
                     'updated_count' => $updatedCount,
                 ]);
+            } elseif ($action === 'save_list_defaults') {
+                $defaultFilterValue = trim((string)($_POST['default_filter'] ?? ''));
+                $defaultPerPageValue = (int)($_POST['default_per_page'] ?? 0);
+                if (!in_array($defaultFilterValue, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+                    throw new InvalidArgumentException('Invalid default filter setting.');
+                }
+                if (!in_array($defaultPerPageValue, [25, 50, 100, 250], true)) {
+                    throw new InvalidArgumentException('Invalid rows-per-page setting.');
+                }
+                UserPreference::setMany((int)($user['id'] ?? 0), [
+                    'calls.default_filter' => $defaultFilterValue,
+                    'calls.default_per_page' => (string)$defaultPerPageValue,
+                ]);
+                $userDefaults['filter'] = $defaultFilterValue;
+                $userDefaults['per_page'] = $defaultPerPageValue;
+                $defaultFilter = $defaultFilterValue;
+                $filter = $defaultFilterValue;
+                $perPage = $defaultPerPageValue;
+                $success = 'Your default filter settings were saved.';
             } elseif ($action === 'save_view') {
                 if (!$savedViewsEnabled) {
                     throw new InvalidArgumentException('Saved Views beta feature is currently disabled by an administrator.');
@@ -197,6 +232,7 @@ Template::render('pages/index', [
     'calls' => $calls,
     'page' => $page,
     'perPage' => $perPage,
+    'defaultPerPage' => $userDefaults['per_page'],
     'allowedPerPage' => $allowedPerPage,
     'totalCalls' => $totalCalls,
     'totalPages' => $totalPages,
