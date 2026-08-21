@@ -825,7 +825,7 @@ class ServiceCall
         return [$conditions, $params];
     }
 
-    private static function appendTechnicianNote(string $existingNotes, string $note, array $actor): string
+    public static function appendTechnicianNote(string $existingNotes, string $note, array $actor): string
     {
         $timestamp = date('Y-m-d H:i');
         $prefix = self::resolveActorName($actor, 'Technician');
