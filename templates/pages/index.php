@@ -170,11 +170,7 @@ $isUnsearchedNonDefaultList = $search === ''
     </div>
 </div>
 <div class="table-responsive">
-    <?php if (($user['role'] ?? '') === 'Technician'): ?>
-        <div class="alert alert-info mb-3" role="alert">
-            Bulk updates are limited to office and admin roles.
-        </div>
-    <?php elseif ($bulkManagementEnabled): ?>
+    <?php if ($bulkManagementEnabled && ($user['role'] ?? '') !== 'Technician'): ?>
     <form method="post" id="bulk-action-form">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="bulk_update">
