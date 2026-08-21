@@ -3,22 +3,28 @@ require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Helpers.php';
+require_once __DIR__ . '/../src/UserPreference.php';
 
 Auth::requireLogin();
 $user = Auth::currentUser() ?? [];
+$userId = (int)($user['id'] ?? 0);
 
-$format = strtolower(trim((string)($_GET['format'] ?? 'csv')));
+// The column-picker form posts back to this same script, replicating the original
+// query string as hidden fields, so read from POST data on that request instead of GET.
+$params = ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_columns') ? $_POST : $_GET;
+
+$format = strtolower(trim((string)($params['format'] ?? 'csv')));
 if (!in_array($format, ['csv', 'print'], true)) {
     $format = 'csv';
 }
 
-$source = strtolower(trim((string)($_GET['source'] ?? 'calls')));
+$source = strtolower(trim((string)($params['source'] ?? 'calls')));
 if (!in_array($source, ['calls', 'search', 'technician', 'activity'], true)) {
     $source = 'calls';
 }
 
-$search = trim((string)($_GET['search'] ?? ''));
-$filter = trim((string)($_GET['filter'] ?? 'incomplete'));
+$search = trim((string)($params['search'] ?? ''));
+$filter = trim((string)($params['filter'] ?? 'incomplete'));
 $allowedFilters = ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'];
 if (!in_array($filter, $allowedFilters, true)) {
     $filter = 'incomplete';
@@ -76,7 +82,7 @@ if ($source === 'calls') {
     if (($user['role'] ?? '') === 'Technician') {
         $techId = (int)($user['technician_id'] ?? 0);
     } else {
-        $techId = (int)($_GET['technician_id'] ?? 0);
+        $techId = (int)($params['technician_id'] ?? 0);
     }
 
     $techName = 'Unlinked Technician';
@@ -121,12 +127,12 @@ if ($source === 'calls') {
 } else {
     $title = 'Activity Log';
     $activityFilters = [
-        'query' => trim((string)($_GET['query'] ?? '')),
-        'actor' => trim((string)($_GET['actor'] ?? '')),
-        'event_type' => trim((string)($_GET['event_type'] ?? 'all')),
-        'field_name' => trim((string)($_GET['field_name'] ?? '')),
-        'date_from' => trim((string)($_GET['date_from'] ?? '')),
-        'date_to' => trim((string)($_GET['date_to'] ?? '')),
+        'query' => trim((string)($params['query'] ?? '')),
+        'actor' => trim((string)($params['actor'] ?? '')),
+        'event_type' => trim((string)($params['event_type'] ?? 'all')),
+        'field_name' => trim((string)($params['field_name'] ?? '')),
+        'date_from' => trim((string)($params['date_from'] ?? '')),
+        'date_to' => trim((string)($params['date_to'] ?? '')),
     ];
 
     if (!in_array($activityFilters['event_type'], ['all', 'service_call', 'system'], true)) {
@@ -197,6 +203,44 @@ if ($format === 'csv') {
 
     fclose($output);
     exit;
+}
+
+$prefKey = 'print_view.columns.' . $source;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_columns') {
+    if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
+        http_response_code(400);
+        echo 'Your session expired. Please reload and try again.';
+        exit;
+    }
+
+    $selectedColumns = array_values(array_intersect(array_keys($columns), (array)($_POST['columns'] ?? [])));
+    if (empty($selectedColumns)) {
+        $selectedColumns = array_keys($columns);
+    }
+    UserPreference::set($userId, $prefKey, implode(',', $selectedColumns));
+
+    $redirectParams = $params;
+    unset($redirectParams['action'], $redirectParams['columns'], $redirectParams['_csrf_token']);
+    $redirectParams['format'] = 'print';
+    header('Location: ' . url('public/data_view.php') . '?' . http_build_query($redirectParams));
+    exit;
+}
+
+// Determine which columns this user has chosen to show for this view (defaults to all).
+$visibleColumns = $columns;
+$savedColumnsPref = UserPreference::get($userId, $prefKey, '');
+if ($savedColumnsPref !== null && trim($savedColumnsPref) !== '') {
+    $savedColumnKeys = array_filter(array_map('trim', explode(',', $savedColumnsPref)));
+    $orderedColumns = [];
+    foreach ($savedColumnKeys as $columnKey) {
+        if (isset($columns[$columnKey])) {
+            $orderedColumns[$columnKey] = $columns[$columnKey];
+        }
+    }
+    if (!empty($orderedColumns)) {
+        $visibleColumns = $orderedColumns;
+    }
 }
 
 apply_security_headers();
@@ -276,8 +320,34 @@ if ($source === 'activity' && isset($activityFilters)) {
             font-weight: 600;
         }
 
+        .columns-picker {
+            border: 1px solid #cfcfcf;
+            background: #f9f9f9;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .columns-picker summary {
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .columns-picker .columns-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+            margin: 10px 0;
+        }
+
+        .columns-picker label {
+            font-weight: normal;
+            white-space: nowrap;
+        }
+
         @media print {
-            .print-actions {
+            .print-actions,
+            .columns-picker {
                 display: none;
             }
 
@@ -291,6 +361,33 @@ if ($source === 'activity' && isset($activityFilters)) {
 <div class="print-actions" style="margin-bottom: 12px;">
     <button type="button" onclick="window.print();">Print</button>
 </div>
+<details class="columns-picker">
+    <summary>Show/Hide Columns</summary>
+    <form method="post" action="<?= escape(url('public/data_view.php')) ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="save_columns">
+        <?php foreach ($_GET as $paramName => $paramValue): ?>
+            <?php if ($paramName === 'columns'): continue; endif; ?>
+            <?php if (is_array($paramValue)): ?>
+                <?php foreach ($paramValue as $paramItem): ?>
+                    <input type="hidden" name="<?= escape((string)$paramName) ?>[]" value="<?= escape((string)$paramItem) ?>">
+                <?php endforeach; ?>
+            <?php else: ?>
+                <input type="hidden" name="<?= escape((string)$paramName) ?>" value="<?= escape((string)$paramValue) ?>">
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <div class="columns-grid">
+            <?php foreach ($columns as $columnField => $columnLabel): ?>
+                <label>
+                    <input type="checkbox" name="columns[]" value="<?= escape($columnField) ?>"
+                        <?= isset($visibleColumns[$columnField]) ? 'checked' : '' ?>>
+                    <?= escape($columnLabel) ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+        <button type="submit">Apply</button>
+    </form>
+</details>
 <h1><?= escape($title) ?></h1>
 <div class="meta">
     <div>Generated: <?= escape(date('Y-m-d H:i')) ?></div>
@@ -302,7 +399,7 @@ if ($source === 'activity' && isset($activityFilters)) {
 <table>
     <thead>
     <tr>
-        <?php foreach ($columns as $label): ?>
+        <?php foreach ($visibleColumns as $label): ?>
             <th><?= escape($label) ?></th>
         <?php endforeach; ?>
     </tr>
@@ -310,12 +407,12 @@ if ($source === 'activity' && isset($activityFilters)) {
     <tbody>
     <?php if (empty($rows)): ?>
         <tr>
-            <td colspan="<?= count($columns) ?>">No records found.</td>
+            <td colspan="<?= count($visibleColumns) ?>">No records found.</td>
         </tr>
     <?php else: ?>
         <?php foreach ($rows as $row): ?>
             <tr>
-                <?php foreach ($columns as $field => $label): ?>
+                <?php foreach ($visibleColumns as $field => $label): ?>
                     <td><?= nl2br(escape((string)($row[$field] ?? ''))) ?></td>
                 <?php endforeach; ?>
             </tr>
