@@ -192,6 +192,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data = $values;
                 $data['created_by'] = $call['created_by'];
                 $data['assigned_tech'] = $data['assigned_tech'] ?: null;
+                if ($values['technician_note'] !== '') {
+                    $data['internal_notes'] = ServiceCall::appendTechnicianNote(
+                        (string)($values['internal_notes'] ?? ''),
+                        $values['technician_note'],
+                        $user
+                    );
+                }
                 try {
                     ServiceCall::save($data, $id, $user, $expectedUpdatedAt);
                     header('Location: ' . url('public/index.php'));
