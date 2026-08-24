@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/AppSettings.php';
 require_once __DIR__ . '/Helpers.php';
+require_once __DIR__ . '/UserPreference.php';
 
 class Template
 {
@@ -15,6 +16,11 @@ class Template
         if (!isset($data['app_logo_url'])) {
             $logoPath = (string)($data['app_settings']['site_logo_path'] ?? '');
             $data['app_logo_url'] = $logoPath === '' ? '' : url($logoPath);
+        }
+        if (!isset($data['app_theme'])) {
+            $userId = (int)($data['user']['id'] ?? 0);
+            $theme = $userId > 0 ? UserPreference::get($userId, 'ui_theme', 'light') : 'light';
+            $data['app_theme'] = in_array($theme, ['light', 'dark'], true) ? $theme : 'light';
         }
 
         $root = dirname(__DIR__);

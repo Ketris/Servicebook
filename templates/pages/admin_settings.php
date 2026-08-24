@@ -59,7 +59,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
 
                     <?php if (!empty($settings['site_logo_path'])): ?>
                         <div class="mb-3">
-                            <div class="border rounded p-3 bg-light">
+                            <div class="border rounded p-3 surface-muted">
                                 <div class="small text-muted mb-2">Current Logo Preview</div>
                                 <img src="<?= escape(url($settings['site_logo_path'])) ?>" alt="Current title image" style="max-height: 72px; max-width: 100%;">
                             </div>
@@ -101,6 +101,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
                                 <input class="form-check-input" type="checkbox" value="1" id="backup_auto_enabled" name="backup_auto_enabled" <?= $backupAutoEnabled ? 'checked' : '' ?>>
                                 <label class="form-check-label" for="backup_auto_enabled">Enable scheduled automatic backups</label>
                             </div>
+                        <div class="form-text">Automatic backups are only created when there is activity on the system. If there is no activity, backups will not be generated regardless of schedule settings.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="backup_cadence">Backup Cadence</label>

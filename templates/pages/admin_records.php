@@ -247,13 +247,13 @@
         border: none;
         background: transparent;
         line-height: 1;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
         font-size: 1rem;
         padding: 0;
     }
 
     .filter-clear-btn:hover {
-        color: #212529;
+        color: var(--app-text);
     }
 </style>
 <script>

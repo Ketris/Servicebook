@@ -2,6 +2,7 @@
 $user = $user ?? null;
 $app_site_title = $app_site_title ?? 'Servicebook';
 $app_logo_url = $app_logo_url ?? '';
+$navbarTheme = in_array($app_theme ?? '', ['light', 'dark'], true) ? $app_theme : 'light';
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
     <div class="container-fluid">
@@ -38,6 +39,9 @@ $app_logo_url = $app_logo_url ?? '';
                 <?php endif; ?>
             </ul>
             <div class="d-flex align-items-center">
+                <button type="button" class="btn btn-outline-secondary btn-sm me-3" data-theme-toggle aria-label="<?= $navbarTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode' ?>">
+                    <i class="bi <?= $navbarTheme === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars-fill' ?>"></i>
+                </button>
                 <span class="me-3 text-muted small">Signed in as <?= escape($user['display_name'] ?? '') ?></span>
                 <a class="btn btn-outline-secondary btn-sm" href="<?= url('public/logout.php') ?>">Logout</a>
             </div>

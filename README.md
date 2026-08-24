@@ -18,6 +18,7 @@ Implemented highlights:
 - Shared keyboard shortcut handling; press N on the call list to create a new call
 - Reusable customer and location records with admin merge/edit tools
 - Activity logging for call-level changes and system-level admin actions
+- Full light/dark mode support via Bootstrap 5.3's native theming, with per-user persistence and flash-free initial load
 - Authentication hardening (CSRF, rate limiting/lockouts, session hardening)
 - Installer hardening with sanitized user-facing errors
 - Daily application log rotation with retention pruning
