@@ -7,6 +7,11 @@
         <div class="col-md-6 col-lg-5">
             <div class="card shadow-sm">
                 <div class="card-body p-4">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-theme-toggle aria-label="Switch to dark mode">
+                            <i class="bi bi-moon-stars-fill"></i>
+                        </button>
+                    </div>
                     <?php if (!empty($app_logo_url)): ?>
                         <div class="text-center mb-4">
                             <img src="<?= escape($app_logo_url) ?>" alt="<?= escape($app_site_title ?? 'Servicebook') ?>" style="max-height: 84px; max-width: 100%;">
@@ -33,7 +38,7 @@
                     </form>
                 </div>
             </div>
-            <p class="text-muted text-center mt-3">Phase 1 service call manager</p>
+            <p class="text-muted text-center mt-3"><small>Servicebook - <a target="_blank" href="https://github.com/Ketris/Servicebook">Github</a></small></p>
         </div>
     </div>
 </div>
