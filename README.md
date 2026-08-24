@@ -89,8 +89,3 @@ Activity logging:
 - src/: core classes (auth, database, models, backup manager, logging, helpers)
 - templates/: layouts and page templates
 - storage/: logs and backups
-
-## Next Documentation
-
-- Current implementation direction: FUTURE_PLANS.md
-- Current functional baseline: PROJECT_SPEC.md
