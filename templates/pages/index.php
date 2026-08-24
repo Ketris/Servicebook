@@ -145,19 +145,7 @@ $isUnsearchedNonDefaultList = $search === ''
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <a class="btn btn-primary" href="<?= url('public/new_call.php') ?>">New Call</a>
     </div>
-    <div class="d-flex align-items-center gap-2">
-                <div class="btn-group">
-            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Columns</button>
-            <ul class="dropdown-menu p-3" style="min-width: 220px;">
-                <?php foreach (['job_number' => 'Job #', 'received_date' => 'Received', 'customer' => 'Customer', 'location' => 'Location', 'reported_issue' => 'Issue', 'po_number' => 'PO Number', 'status' => 'Status', 'assigned_tech_name' => 'Technician'] as $field => $label): ?>
-                    <li class="form-check">
-                        <input class="form-check-input column-toggle" type="checkbox" data-column="<?= $field ?>" id="col_<?= $field ?>" checked>
-                        <label class="form-check-label" for="col_<?= $field ?>"><?= $label ?></label>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <small class="text-muted mb-0">Click headers to sort. Drag the right edge to resize.</small>
+    <div class="d-flex flex-column align-items-end gap-2">
         <?php
         $currentCount = count($calls);
         $pageStart = $currentCount > 0 ? ((($page - 1) * $perPage) + 1) : 0;
@@ -166,7 +154,23 @@ $isUnsearchedNonDefaultList = $search === ''
         <span id="call-count" class="badge rounded-pill text-bg-light border">
             Showing <?= escape((string)$pageStart) ?>-<?= escape((string)$pageEnd) ?> of <?= escape((string)($totalCalls ?? $currentCount)) ?> calls
         </span>
-        <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted p-0" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences">↺</button>
+        <div class="d-flex align-items-center gap-2">
+        <small class="text-muted mb-0">Click to sort. Drag edges to resize.</small>
+            <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 dropdown-toggle" data-bs-toggle="dropdown">Columns</button>
+            <ul class="dropdown-menu p-3" style="min-width: 220px;">
+                <?php foreach (['job_number' => 'Job #', 'received_date' => 'Received', 'customer' => 'Customer', 'location' => 'Location', 'reported_issue' => 'Issue', 'po_number' => 'PO Number', 'status' => 'Status', 'assigned_tech_name' => 'Technician'] as $field => $label): ?>
+                    <li class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" data-column="<?= $field ?>" id="col_<?= $field ?>" checked>
+                        <label class="form-check-label" for="col_<?= $field ?>"><?= $label ?></label>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences">
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Reset
+            </button>
+        </div>
     </div>
 </div>
 <div class="table-responsive">
