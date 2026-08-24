@@ -114,6 +114,14 @@ $filterLabel = $filter === 'all' ? 'all' : (
 );
 $isUnsearchedNonDefaultList = $search === ''
     && ($filter !== $defaultFilter || (int)$perPage !== (int)($defaultPerPage ?? 50));
+$indexQueryBase = [
+    'search' => $search,
+    'filter' => $filter,
+    'per_page' => $perPage,
+];
+if ($savedViewsEnabled && $selectedViewId > 0) {
+    $indexQueryBase['saved_view'] = $selectedViewId;
+}
 ?>
 <div class="mb-3">
     <small class="text-muted">
@@ -145,15 +153,13 @@ $isUnsearchedNonDefaultList = $search === ''
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <a class="btn btn-primary" href="<?= url('public/new_call.php') ?>">New Call</a>
     </div>
-    <div class="d-flex flex-column align-items-end gap-2">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="d-flex flex-column align-items-end gap-2">
         <?php
         $currentCount = count($calls);
         $pageStart = $currentCount > 0 ? ((($page - 1) * $perPage) + 1) : 0;
         $pageEnd = $currentCount > 0 ? ($pageStart + $currentCount - 1) : 0;
         ?>
-        <span id="call-count" class="badge rounded-pill text-bg-light border">
-            Showing <?= escape((string)$pageStart) ?>-<?= escape((string)$pageEnd) ?> of <?= escape((string)($totalCalls ?? $currentCount)) ?> calls
-        </span>
         <div class="d-flex align-items-center gap-2">
         <small class="text-muted mb-0">Click to sort. Drag edges to resize.</small>
             <div class="btn-group">
@@ -171,6 +177,36 @@ $isUnsearchedNonDefaultList = $search === ''
                 <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Reset
             </button>
         </div>
+        </div>
+        <?php if ($totalPages > 1): ?>
+            <?php
+            $topPrevParams = $indexQueryBase;
+            $topPrevParams['page'] = max(1, $page - 1);
+            $topNextParams = $indexQueryBase;
+            $topNextParams['page'] = min($totalPages, $page + 1);
+            $topPageWindowStart = max(1, $page - 2);
+            $topPageWindowEnd = min($totalPages, $page + 2);
+            ?>
+            <nav class="d-flex align-items-center gap-2" aria-label="Top service calls pagination">
+                <?php if ($page <= 1): ?>
+                    <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Previous</span>
+                <?php else: ?>
+                    <a class="btn btn-sm btn-outline-secondary" href="<?= escape(url('public/index.php?' . http_build_query($topPrevParams))) ?>" rel="prev">Previous</a>
+                <?php endif; ?>
+                <?php for ($topPage = $topPageWindowStart; $topPage <= $topPageWindowEnd; $topPage++): ?>
+                    <?php
+                    $topPageParams = $indexQueryBase;
+                    $topPageParams['page'] = $topPage;
+                    ?>
+                    <a class="btn btn-sm <?= $topPage === $page ? 'btn-primary' : 'btn-outline-secondary' ?>" href="<?= escape(url('public/index.php?' . http_build_query($topPageParams))) ?>" <?= $topPage === $page ? 'aria-current="page"' : '' ?>><?= escape((string)$topPage) ?></a>
+                <?php endfor; ?>
+                <?php if ($page >= $totalPages): ?>
+                    <span class="btn btn-sm btn-outline-secondary disabled" aria-disabled="true">Next</span>
+                <?php else: ?>
+                    <a class="btn btn-sm btn-outline-secondary" href="<?= escape(url('public/index.php?' . http_build_query($topNextParams))) ?>" rel="next">Next</a>
+                <?php endif; ?>
+            </nav>
+        <?php endif; ?>
     </div>
 </div>
 <div class="table-responsive">
@@ -258,16 +294,7 @@ $isUnsearchedNonDefaultList = $search === ''
         </table>
     <?php endif; ?>
 </div>
-<?php
-$indexQueryBase = [
-    'search' => $search,
-    'filter' => $filter,
-    'per_page' => $perPage,
-];
-if ($savedViewsEnabled && $selectedViewId > 0) {
-    $indexQueryBase['saved_view'] = $selectedViewId;
-}
-?>
+<?php if ($totalPages > 1): ?>
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-3">
     <div class="small text-muted">
         Page <?= escape((string)$page) ?> of <?= escape((string)$totalPages) ?>
@@ -319,6 +346,12 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
             <a class="btn btn-sm btn-outline-secondary" href="<?= escape(url('public/index.php?' . http_build_query($nextParams))) ?>" rel="next">Next</a>
         <?php endif; ?>
     </nav>
+</div>
+<?php endif; ?>
+<div class="d-flex justify-content-end mb-3">
+    <span id="call-count" class="badge rounded-pill text-bg-light border" data-total-calls="<?= escape((string)($totalCalls ?? $currentCount)) ?>">
+        Showing <?= escape((string)$pageStart) ?>-<?= escape((string)$pageEnd) ?> of <?= escape((string)($totalCalls ?? $currentCount)) ?> calls
+    </span>
 </div>
 <?php if ($bulkManagementEnabled && ($user['role'] ?? '') !== 'Technician'): ?>
     <div class="card border-0 shadow-sm mt-3">
@@ -584,7 +617,8 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         if (!countElement) {
             return;
         }
-        countElement.textContent = `Showing ${allRows.length} calls`;
+        const totalCalls = countElement.dataset.totalCalls || String(allRows.length);
+        countElement.textContent = `Showing ${allRows.length} of ${totalCalls} calls`;
     }
 
     function applyColumnWidth(column, width) {
