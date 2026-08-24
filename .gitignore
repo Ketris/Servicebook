@@ -3,3 +3,5 @@
 !/storage/backups/.htaccess
 /public/assets/branding/*
 /src/config.php
+/FUTURE_PLANS.md
+/PROJECT_SPEC.md
