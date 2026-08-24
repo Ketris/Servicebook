@@ -138,7 +138,7 @@ $paginationBaseParams = array_merge(['per_page' => $perPage], $filterParams);
                             <td><?= escape($actorName !== '' ? $actorName : 'System') ?></td>
                             <td>
                                 <?php if (!empty($entry['service_call_id'])): ?>
-                                    <a href="<?= url('public/edit_call.php?id=' . $entry['service_call_id']) ?>" class="text-decoration-none"><?= escape($entry['job_number'] ?? ('Call #' . $entry['service_call_id'])) ?></a>
+                                    <a href="<?= url('public/view_call.php?id=' . $entry['service_call_id']) ?>" class="text-decoration-none"><?= escape($entry['job_number'] ?? ('Call #' . $entry['service_call_id'])) ?></a>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>

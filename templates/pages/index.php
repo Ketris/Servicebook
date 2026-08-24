@@ -237,7 +237,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
             </tr>
         <?php else: ?>
             <?php foreach ($calls as $call): ?>
-                <tr onclick="window.location='<?= url('public/edit_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
+                <tr onclick="window.location='<?= url('public/view_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
                     <td data-column="bulk_select">
                         <input type="checkbox" class="row-check" name="call_ids[]" value="<?= escape((string)$call['id']) ?>" onclick="event.stopPropagation();">
                     </td>
@@ -278,7 +278,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
                 </tr>
             <?php else: ?>
                 <?php foreach ($calls as $call): ?>
-                    <tr onclick="window.location='<?= url('public/edit_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
+                    <tr onclick="window.location='<?= url('public/view_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
                         <td data-column="job_number"><?= escape($call['job_number']) ?></td>
                         <td data-column="received_date"><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></td>
                         <td data-column="customer"><?= escape($call['customer']) ?></td>

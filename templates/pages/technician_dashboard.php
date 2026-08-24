@@ -167,7 +167,7 @@
                                 <div class="col-12">
                                     <div class="job-actions">
                                         <div class="d-flex flex-wrap gap-2">
-                                            <a class="btn btn-outline-secondary" href="<?= url('public/edit_call.php?id=' . $job['id']) ?>">Open Full Job</a>
+                                            <a class="btn btn-outline-secondary" href="<?= url('public/view_call.php?id=' . $job['id']) ?>">Open Full Job</a>
                                             <?php if (!empty($job['phone'])): ?>
                                                 <a class="btn btn-outline-primary" href="tel:<?= escape($job['phone']) ?>">Call Contact</a>
                                             <?php endif; ?>
@@ -223,7 +223,7 @@
                                         <button type="submit" class="btn btn-success">Claim Job</button>
                                     </form>
                                 <?php endif; ?>
-                                <a class="btn btn-outline-secondary" href="<?= url('public/edit_call.php?id=' . $job['id']) ?>">View Details</a>
+                                <a class="btn btn-outline-secondary" href="<?= url('public/view_call.php?id=' . $job['id']) ?>">View Details</a>
                             </div>
                         </div>
                     </div>

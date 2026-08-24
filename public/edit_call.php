@@ -21,7 +21,11 @@ if (!$call) {
 
 $isTechnician = ($user['role'] ?? '') === 'Technician';
 $canDelete = in_array((string)($user['role'] ?? ''), ['Administrator', 'Office Staff'], true);
-$canManage = !$isTechnician || ((int)($call['assigned_tech'] ?? 0) === (int)($user['technician_id'] ?? 0));
+$canManage = !$isTechnician || (
+    !empty($call['assigned_tech'])
+    && !empty($user['technician_id'])
+    && (int)$call['assigned_tech'] === (int)$user['technician_id']
+);
 $canSelfAssign = $isTechnician
     && !empty($user['technician_id'])
     && empty($call['assigned_tech'])

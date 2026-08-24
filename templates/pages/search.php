@@ -111,7 +111,7 @@ $searchQueryBase = [
             </tr>
         <?php else: ?>
             <?php foreach ($calls as $call): ?>
-                <tr onclick="window.location='<?= url('public/edit_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
+                <tr onclick="window.location='<?= url('public/view_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
                     <td><?= escape($call['job_number']) ?></td>
                     <td><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></td>
                     <td><?= escape($call['customer']) ?></td>

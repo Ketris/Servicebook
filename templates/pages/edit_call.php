@@ -176,7 +176,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                                 <?php foreach ($relatedCalls as $relatedCall): ?>
                                     <tr>
                                         <td>
-                                            <a href="<?= url('public/edit_call.php?id=' . (int)$relatedCall['id']) ?>">
+                                            <a href="<?= url('public/view_call.php?id=' . (int)$relatedCall['id']) ?>">
                                                 <?= escape((string)$relatedCall['job_number']) ?>
                                             </a>
                                         </td>

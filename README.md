@@ -6,10 +6,11 @@ It is designed to replace a handwritten dispatch notebook while preserving speed
 
 ## Current Status
 
-Current as of 2026-08-19.
+Current as of 2026-08-24.
 
 Implemented highlights:
-- Service call intake, editing, assignment, and status workflow
+- Service call intake, view-first details, editing, assignment, and status workflow
+- Existing calls open in a read-only detail view; permitted users can edit, claim unassigned work, or add technician notes
 - Role-based access for Administrator, Office Staff, and Technician
 - Technician dashboard with quick updates and claim actions for unassigned work
 - Open/unassigned/closed filters and dedicated search
