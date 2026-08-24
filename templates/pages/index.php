@@ -17,7 +17,7 @@ if ($defaultFilter === '') {
                     )
                 )
             )
-        ?> work orders by default. Search by job number, customer, location, PO number, or issue.</p>
+        ?> work orders. Search by job number, customer, location, PO number, or issue.</p>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         <?php
