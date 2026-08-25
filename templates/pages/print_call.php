@@ -7,24 +7,24 @@
     <style>
         :root { color-scheme: light; }
         * { box-sizing: border-box; }
-        body { color: #171717; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; margin: 0; }
+        body { color: #171717; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.45; margin: 0; }
         main { margin: 18mm auto; max-width: 190mm; }
         h1, h2, p { margin-top: 0; }
-        h1 { font-size: 23px; margin-bottom: 4px; }
-        h2 { border-bottom: 1px solid #777; font-size: 14px; margin: 20px 0 8px; padding-bottom: 4px; }
+        h1 { font-size: 28px; margin-bottom: 4px; }
+        h2 { border-bottom: 1px solid #777; font-size: 17px; margin: 20px 0 8px; padding-bottom: 4px; }
         .muted { color: #555; }
         .header, .details { display: grid; gap: 12px; }
         .header { grid-template-columns: 1fr auto; align-items: start; }
         .details { grid-template-columns: repeat(3, 1fr); }
         .detail, .section { break-inside: avoid; }
-        .label { color: #555; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .label { color: #555; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .value { margin-top: 2px; overflow-wrap: anywhere; }
         .section { border: 1px solid #aaa; margin-top: 12px; padding: 10px; white-space: pre-wrap; }
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #aaa; padding: 6px; text-align: left; vertical-align: top; }
-        th { background: #eee; font-size: 10px; text-transform: uppercase; }
+        th { background: #eee; font-size: 11px; text-transform: uppercase; }
         @media print {
-            body { font-size: 11px; }
+            body { font-size: 14px; }
             main { margin: 8mm auto; }
         }
     </style>
