@@ -8,6 +8,7 @@
             </div>
             <div class="d-flex flex-wrap gap-2 justify-content-end">
                 <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
+                <button type="button" class="btn btn-outline-secondary" onclick="window.open('<?= url('public/print_call.php?id=' . (int)$call['id']) ?>', 'servicebook_print', 'popup,width=1000,height=800');">Print</button>
                 <?php if ($canEditDetails): ?>
                     <a class="btn btn-primary" href="<?= url('public/edit_call.php?id=' . (int)$call['id']) ?>">Edit Call</a>
                 <?php endif; ?>
