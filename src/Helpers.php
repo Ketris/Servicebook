@@ -1,8 +1,41 @@
 <?php
+require_once __DIR__ . '/AppSettings.php';
+
 if (!function_exists('escape')) {
     function escape(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (!function_exists('format_date')) {
+    // Formats a date-only value (no time) using the admin-configured date format setting.
+    function format_date(?string $value): string
+    {
+        if ($value === null || trim($value) === '') {
+            return '';
+        }
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return '';
+        }
+        return date(AppSettings::get('date_format'), $timestamp);
+    }
+}
+
+if (!function_exists('format_datetime')) {
+    // Formats a date+time value using the admin-configured date and time format settings.
+    function format_datetime(?string $value): string
+    {
+        if ($value === null || trim($value) === '') {
+            return '';
+        }
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return '';
+        }
+        $format = trim(AppSettings::get('date_format') . ' ' . AppSettings::get('time_format'));
+        return date($format, $timestamp);
     }
 }
 

@@ -242,7 +242,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
                         <input type="checkbox" class="row-check" name="call_ids[]" value="<?= escape((string)$call['id']) ?>" onclick="event.stopPropagation();">
                     </td>
                     <td data-column="job_number"><?= escape($call['job_number']) ?></td>
-                    <td data-column="received_date"><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></td>
+                    <td data-column="received_date"><?= escape(format_datetime($call['received_date'])) ?></td>
                     <td data-column="customer"><?= escape($call['customer']) ?></td>
                     <td data-column="location"><?= escape($call['location']) ?></td>
                     <td data-column="reported_issue"><div class="truncate-2"><?= escape(truncate($call['reported_issue'], 120)) ?></div></td>
@@ -280,7 +280,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
                 <?php foreach ($calls as $call): ?>
                     <tr onclick="window.location='<?= url('public/view_call.php?id=' . $call['id']) ?>'" style="cursor:pointer;">
                         <td data-column="job_number"><?= escape($call['job_number']) ?></td>
-                        <td data-column="received_date"><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></td>
+                        <td data-column="received_date"><?= escape(format_datetime($call['received_date'])) ?></td>
                         <td data-column="customer"><?= escape($call['customer']) ?></td>
                         <td data-column="location"><?= escape($call['location']) ?></td>
                         <td data-column="reported_issue"><div class="truncate-2"><?= escape(truncate($call['reported_issue'], 120)) ?></div></td>

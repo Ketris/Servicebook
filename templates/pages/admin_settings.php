@@ -4,6 +4,8 @@
 /** @var string $successMessage */
 /** @var array<int, array<string, mixed>> $backupFiles */
 /** @var int $maxBackupUploadBytes */
+/** @var array<int, string> $allowedDateFormats */
+/** @var array<int, string> $allowedTimeFormats */
 $backupRetention = (string)($settings['backup_retention_days'] ?? '60');
 $backupCadence = (string)($settings['backup_cadence'] ?? 'daily');
 $backupAutoEnabled = (string)($settings['backup_auto_enabled'] ?? '1') === '1';
@@ -13,13 +15,28 @@ $lastBackupRun = trim((string)($settings['backup_last_run_at'] ?? ''));
 $lastBackupAttemptAt = trim((string)($settings['backup_last_attempt_at'] ?? ''));
 $lastBackupAttemptStatus = trim((string)($settings['backup_last_attempt_status'] ?? ''));
 $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?? ''));
+$currentDateFormat = (string)($settings['date_format'] ?? 'Y-m-d');
+$currentTimeFormat = (string)($settings['time_format'] ?? 'H:i');
+$dateFormatLabels = [
+    'Y-m-d' => 'ISO (2026-08-25)',
+    'm/d/Y' => 'US (08/25/2026)',
+    'd/m/Y' => 'UK/EU (25/08/2026)',
+    'M j, Y' => 'Month name (Aug 25, 2026)',
+    'd M Y' => 'Day-Month name (25 Aug 2026)',
+];
+$timeFormatLabels = [
+    'H:i' => '24-hour (14:30)',
+    'h:i A' => '12-hour (02:30 PM)',
+    'H:i:s' => '24-hour with seconds (14:30:00)',
+];
+$previewNow = time();
 ?>
 <div class="row justify-content-center">
     <div class="col-xl-10">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1">System Settings</h1>
-                <p class="text-muted mb-0">Configure branding, backup cadence, retention, and restore options.</p>
+                <p class="text-muted mb-0">Configure branding, display formats, features, and backup policy.</p>
             </div>
             <a class="btn btn-secondary" href="<?= url('admin/index.php') ?>">Back</a>
         </div>
@@ -32,105 +49,145 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
         <?php endif; ?>
 
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white">
-                <h2 class="h6 mb-0">Branding and Backup Policy</h2>
+            <div class="card-header bg-white p-0">
+                <ul class="nav nav-tabs card-header-tabs px-3 pt-2" id="settings-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="tab-general-btn" data-bs-toggle="tab" data-bs-target="#tab-general" type="button" role="tab" aria-controls="tab-general" aria-selected="true">General</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-formats-btn" data-bs-toggle="tab" data-bs-target="#tab-formats" type="button" role="tab" aria-controls="tab-formats" aria-selected="false">Date &amp; Time</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-features-btn" data-bs-toggle="tab" data-bs-target="#tab-features" type="button" role="tab" aria-controls="tab-features" aria-selected="false">Features (Beta)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tab-backup-policy-btn" data-bs-toggle="tab" data-bs-target="#tab-backup-policy" type="button" role="tab" aria-controls="tab-backup-policy" aria-selected="false">Backup Policy</button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data" novalidate>
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="save_settings">
 
-                    <div class="mb-3">
-                        <label class="form-label" for="site_title">Site Title</label>
-                        <input id="site_title" name="site_title" class="form-control" type="text" value="<?= escape($settings['site_title']) ?>" required>
-                        <?php if (isset($errors['site_title'])): ?>
-                            <div class="invalid-feedback d-block"><?= escape($errors['site_title']) ?></div>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="site_logo">Title Image (Logo)</label>
-                        <input id="site_logo" name="site_logo" class="form-control" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
-                        <div class="form-text">Optional. PNG, JPG, GIF, or WEBP. Max 2 MB. When uploaded, this image replaces the text site title.</div>
-                        <?php if (isset($errors['site_logo'])): ?>
-                            <div class="invalid-feedback d-block"><?= escape($errors['site_logo']) ?></div>
-                        <?php endif; ?>
-                    </div>
-
-                    <?php if (!empty($settings['site_logo_path'])): ?>
-                        <div class="mb-3">
-                            <div class="border rounded p-3 surface-muted">
-                                <div class="small text-muted mb-2">Current Logo Preview</div>
-                                <img src="<?= escape(url($settings['site_logo_path'])) ?>" alt="Current title image" style="max-height: 72px; max-width: 100%;">
+                    <div class="tab-content" id="settings-tabs-content">
+                        <div class="tab-pane fade show active" id="tab-general" role="tabpanel" aria-labelledby="tab-general-btn">
+                            <div class="mb-3">
+                                <label class="form-label" for="site_title">Site Title</label>
+                                <input id="site_title" name="site_title" class="form-control" type="text" value="<?= escape($settings['site_title']) ?>" required>
+                                <?php if (isset($errors['site_title'])): ?>
+                                    <div class="invalid-feedback d-block"><?= escape($errors['site_title']) ?></div>
+                                <?php endif; ?>
                             </div>
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" value="1" id="remove_logo" name="remove_logo">
-                                <label class="form-check-label" for="remove_logo">Remove current title image</label>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="site_logo">Title Image (Logo)</label>
+                                <input id="site_logo" name="site_logo" class="form-control" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                                <div class="form-text">Optional. PNG, JPG, GIF, or WEBP. Max 2 MB. When uploaded, this image replaces the text site title.</div>
+                                <?php if (isset($errors['site_logo'])): ?>
+                                    <div class="invalid-feedback d-block"><?= escape($errors['site_logo']) ?></div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($settings['site_logo_path'])): ?>
+                                <div class="mb-3">
+                                    <div class="border rounded p-3 surface-muted">
+                                        <div class="small text-muted mb-2">Current Logo Preview</div>
+                                        <img src="<?= escape(url($settings['site_logo_path'])) ?>" alt="Current title image" style="max-height: 72px; max-width: 100%;">
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" value="1" id="remove_logo" name="remove_logo">
+                                        <label class="form-check-label" for="remove_logo">Remove current title image</label>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-formats" role="tabpanel" aria-labelledby="tab-formats-btn">
+                            <p class="text-muted">These formats control how dates and times are displayed throughout the app (calls list, call detail, activity log, print views, etc). They do not affect date entry fields.</p>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="date_format">Date Format</label>
+                                    <select id="date_format" name="date_format" class="form-select">
+                                        <?php foreach ($allowedDateFormats as $formatOption): ?>
+                                            <option value="<?= escape($formatOption) ?>" <?= $currentDateFormat === $formatOption ? 'selected' : '' ?>><?= escape($dateFormatLabels[$formatOption] ?? $formatOption) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="time_format">Time Format</label>
+                                    <select id="time_format" name="time_format" class="form-select">
+                                        <?php foreach ($allowedTimeFormats as $formatOption): ?>
+                                            <option value="<?= escape($formatOption) ?>" <?= $currentTimeFormat === $formatOption ? 'selected' : '' ?>><?= escape($timeFormatLabels[$formatOption] ?? $formatOption) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">Current example: <strong><?= escape(date(trim($currentDateFormat . ' ' . $currentTimeFormat), $previewNow)) ?></strong></div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-features" role="tabpanel" aria-labelledby="tab-features-btn">
+                            <div class="mb-3">
+                                <label class="form-label" for="saved_views_enabled">Saved Views (Beta)</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" value="1" id="saved_views_enabled" name="saved_views_enabled" <?= $savedViewsEnabled ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="saved_views_enabled">Enable Saved Views beta feature</label>
+                                </div>
+                                <div class="form-text">When disabled, users will not see or be able to use Saved Views on the calls page.</div>
+                            </div>
+
+                            <hr>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="bulk_management_enabled">Bulk Management (Beta)</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" value="1" id="bulk_management_enabled" name="bulk_management_enabled" <?= $bulkManagementEnabled ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="bulk_management_enabled">Enable Bulk Management beta feature</label>
+                                </div>
+                                <div class="form-text">When disabled, users will not see or be able to bulk update calls on the calls page.</div>
                             </div>
                         </div>
-                    <?php endif; ?>
 
-                    <hr>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="saved_views_enabled">Saved Views (Beta)</label>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" value="1" id="saved_views_enabled" name="saved_views_enabled" <?= $savedViewsEnabled ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="saved_views_enabled">Enable Saved Views beta feature</label>
-                        </div>
-                        <div class="form-text">When disabled, users will not see or be able to use Saved Views on the calls page.</div>
-                    </div>
-
-                    <hr>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="bulk_management_enabled">Bulk Management (Beta)</label>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" value="1" id="bulk_management_enabled" name="bulk_management_enabled" <?= $bulkManagementEnabled ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="bulk_management_enabled">Enable Bulk Management beta feature</label>
-                        </div>
-                        <div class="form-text">When disabled, users will not see or be able to bulk update calls on the calls page.</div>
-                    </div>
-
-                    <hr>
-
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label" for="backup_auto_enabled">Automatic Backups</label>
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" value="1" id="backup_auto_enabled" name="backup_auto_enabled" <?= $backupAutoEnabled ? 'checked' : '' ?>>
-                                <label class="form-check-label" for="backup_auto_enabled">Enable scheduled automatic backups</label>
+                        <div class="tab-pane fade" id="tab-backup-policy" role="tabpanel" aria-labelledby="tab-backup-policy-btn">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="backup_auto_enabled">Automatic Backups</label>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" value="1" id="backup_auto_enabled" name="backup_auto_enabled" <?= $backupAutoEnabled ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="backup_auto_enabled">Enable scheduled automatic backups</label>
+                                    </div>
+                                <div class="form-text">Automatic backups are only created when there is activity on the system. If there is no activity, backups will not be generated regardless of schedule settings.</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="backup_cadence">Backup Cadence</label>
+                                    <select id="backup_cadence" name="backup_cadence" class="form-select">
+                                        <option value="daily" <?= $backupCadence === 'daily' ? 'selected' : '' ?>>Daily</option>
+                                        <option value="weekly" <?= $backupCadence === 'weekly' ? 'selected' : '' ?>>Weekly</option>
+                                        <option value="monthly" <?= $backupCadence === 'monthly' ? 'selected' : '' ?>>Monthly</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="backup_retention_days">Retention (days)</label>
+                                    <input id="backup_retention_days" name="backup_retention_days" type="number" min="1" max="3650" class="form-control" value="<?= escape($backupRetention) ?>">
+                                    <?php if (isset($errors['backup_retention_days'])): ?>
+                                        <div class="invalid-feedback d-block"><?= escape($errors['backup_retention_days']) ?></div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        <div class="form-text">Automatic backups are only created when there is activity on the system. If there is no activity, backups will not be generated regardless of schedule settings.</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="backup_cadence">Backup Cadence</label>
-                            <select id="backup_cadence" name="backup_cadence" class="form-select">
-                                <option value="daily" <?= $backupCadence === 'daily' ? 'selected' : '' ?>>Daily</option>
-                                <option value="weekly" <?= $backupCadence === 'weekly' ? 'selected' : '' ?>>Weekly</option>
-                                <option value="monthly" <?= $backupCadence === 'monthly' ? 'selected' : '' ?>>Monthly</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="backup_retention_days">Retention (days)</label>
-                            <input id="backup_retention_days" name="backup_retention_days" type="number" min="1" max="3650" class="form-control" value="<?= escape($backupRetention) ?>">
-                            <?php if (isset($errors['backup_retention_days'])): ?>
-                                <div class="invalid-feedback d-block"><?= escape($errors['backup_retention_days']) ?></div>
+                            <div class="small text-muted mt-2">
+                                Last automatic backup run: <?= $lastBackupRun !== '' ? escape(format_datetime($lastBackupRun)) : 'Never' ?>
+                            </div>
+                            <?php if ($lastBackupAttemptAt !== ''): ?>
+                                <div class="small mt-1 <?= $lastBackupAttemptStatus === 'failed' ? 'text-danger' : 'text-muted' ?>">
+                                    Last automatic backup attempt: <?= escape(format_datetime($lastBackupAttemptAt)) ?>
+                                    — <?= $lastBackupAttemptStatus === 'failed' ? 'Failed' : 'Succeeded' ?>
+                                    <?php if ($lastBackupAttemptStatus === 'failed' && $lastBackupAttemptError !== ''): ?>
+                                        (<?= escape($lastBackupAttemptError) ?>)
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="small text-muted mt-2">
-                        Last automatic backup run: <?= $lastBackupRun !== '' ? escape($lastBackupRun) : 'Never' ?>
-                    </div>
-                    <?php if ($lastBackupAttemptAt !== ''): ?>
-                        <div class="small mt-1 <?= $lastBackupAttemptStatus === 'failed' ? 'text-danger' : 'text-muted' ?>">
-                            Last automatic backup attempt: <?= escape($lastBackupAttemptAt) ?>
-                            — <?= $lastBackupAttemptStatus === 'failed' ? 'Failed' : 'Succeeded' ?>
-                            <?php if ($lastBackupAttemptStatus === 'failed' && $lastBackupAttemptError !== ''): ?>
-                                (<?= escape($lastBackupAttemptError) ?>)
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
 
                     <div class="text-end mt-4">
                         <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -138,6 +195,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
                 </form>
             </div>
         </div>
+
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -168,7 +226,7 @@ $lastBackupAttemptError = trim((string)($settings['backup_last_attempt_error'] ?
                                 <?php foreach ($backupFiles as $backup): ?>
                                     <tr>
                                         <td><?= escape((string)($backup['name'] ?? '')) ?></td>
-                                        <td><?= escape((string)($backup['modified_at'] ?? '')) ?></td>
+                                        <td><?= escape(format_datetime((string)($backup['modified_at'] ?? ''))) ?></td>
                                         <td><?= escape(number_format(((int)($backup['size_bytes'] ?? 0)) / 1024, 1)) ?> KB</td>
                                         <td class="text-end">
                                             <div class="d-inline-flex gap-2">

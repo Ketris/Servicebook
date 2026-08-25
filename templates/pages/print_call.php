@@ -44,7 +44,7 @@
             <div class="detail"><div class="label">Customer</div><div class="value"><?= escape($call['customer']) ?></div></div>
             <div class="detail"><div class="label">Location</div><div class="value"><?= escape($call['location']) ?></div></div>
             <div class="detail"><div class="label">Status</div><div class="value"><?= escape($call['status']) ?></div></div>
-            <div class="detail"><div class="label">Received</div><div class="value"><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></div></div>
+            <div class="detail"><div class="label">Received</div><div class="value"><?= escape(format_datetime($call['received_date'])) ?></div></div>
             <div class="detail"><div class="label">Assigned Technician</div><div class="value"><?= escape((string)($call['assigned_tech_name'] ?? 'Unassigned')) ?></div></div>
             <div class="detail"><div class="label">PO Number</div><div class="value"><?= escape($call['po_number'] ?: '-') ?></div></div>
             <div class="detail"><div class="label">Contact</div><div class="value"><?= escape($call['contact'] ?: '-') ?></div></div>
@@ -62,7 +62,7 @@
                 <tbody>
                     <?php foreach ($history as $entry): ?>
                         <tr>
-                            <td><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?></td>
+                            <td><?= escape(format_datetime($entry['created_at'])) ?></td>
                             <td><?= escape(trim((string)($entry['changed_by_name'] ?? '')) ?: 'System') ?></td>
                             <td><?= escape($entry['field_name']) ?></td>
                             <td><?php if (!empty($entry['note'])): ?><?= escape($entry['note']) ?><br><?php endif; ?><?php if ($entry['old_value'] !== null || $entry['new_value'] !== null): ?>From: <?= escape($entry['old_value'] ?? '-') ?> to <?= escape($entry['new_value'] ?? '-') ?><?php endif; ?></td>

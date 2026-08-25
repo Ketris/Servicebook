@@ -24,6 +24,8 @@ $allowedLogoMimeTypes = [
     'image/webp' => 'webp',
 ];
 $allowedBackupCadence = ['daily', 'weekly', 'monthly'];
+$allowedDateFormats = ['Y-m-d', 'm/d/Y', 'd/m/Y', 'M j, Y', 'd M Y'];
+$allowedTimeFormats = ['H:i', 'h:i A', 'H:i:s'];
 $maxLogoBytes = 2 * 1024 * 1024;
 $maxBackupUploadBytes = BackupManager::maxUploadBytes();
 
@@ -139,6 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $settings['site_title'] = trim((string)($_POST['site_title'] ?? ''));
+            $dateFormat = trim((string)($_POST['date_format'] ?? 'Y-m-d'));
+            $settings['date_format'] = in_array($dateFormat, $allowedDateFormats, true) ? $dateFormat : 'Y-m-d';
+            $timeFormat = trim((string)($_POST['time_format'] ?? 'H:i'));
+            $settings['time_format'] = in_array($timeFormat, $allowedTimeFormats, true) ? $timeFormat : 'H:i';
             $settings['saved_views_enabled'] = isset($_POST['saved_views_enabled']) ? '1' : '0';
             $settings['bulk_management_enabled'] = isset($_POST['bulk_management_enabled']) ? '1' : '0';
             $settings['backup_auto_enabled'] = isset($_POST['backup_auto_enabled']) ? '1' : '0';
@@ -335,4 +341,6 @@ Template::render('pages/admin_settings', [
     'successMessage' => $successMessage,
     'backupFiles' => $backupFiles,
     'maxBackupUploadBytes' => $maxBackupUploadBytes,
+    'allowedDateFormats' => $allowedDateFormats,
+    'allowedTimeFormats' => $allowedTimeFormats,
 ], 'layouts/app');

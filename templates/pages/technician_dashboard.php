@@ -117,7 +117,7 @@
                             <div class="row g-3 mb-3 job-detail-list">
                                 <div class="col-sm-6 col-lg-4">
                                     <dt>Received</dt>
-                                    <dd><?= escape(date('Y-m-d H:i', strtotime($job['received_date']))) ?></dd>
+                                    <dd><?= escape(format_datetime($job['received_date'])) ?></dd>
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <dt>PO Number</dt>
@@ -137,7 +137,7 @@
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <dt>Last Updated</dt>
-                                    <dd><?= escape(date('Y-m-d H:i', strtotime($job['updated_at']))) ?></dd>
+                                    <dd><?= escape(format_datetime($job['updated_at'])) ?></dd>
                                 </div>
                             </div>
 
@@ -210,7 +210,7 @@
                                     <div class="text-muted small"><?= escape($job['location']) ?></div>
                                 </div>
                             </div>
-                            <div class="small text-muted mb-2">Received <?= escape(date('Y-m-d H:i', strtotime($job['received_date']))) ?></div>
+                            <div class="small text-muted mb-2">Received <?= escape(format_datetime($job['received_date'])) ?></div>
                             <div class="truncate-3 mb-3"><?= nl2br(escape($job['reported_issue'])) ?></div>
                             <div class="d-flex flex-wrap gap-2">
                                 <?php if ($technicianLinked): ?>

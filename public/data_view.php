@@ -390,7 +390,7 @@ if ($source === 'activity' && isset($activityFilters)) {
 </details>
 <h1><?= escape($title) ?></h1>
 <div class="meta">
-    <div>Generated: <?= escape(date('Y-m-d H:i')) ?></div>
+    <div>Generated: <?= escape(format_datetime(date('Y-m-d H:i:s'))) ?></div>
     <div class="meta-line">Rows: <?= count($rows) ?></div>
     <?php if (!empty($summaryParts)): ?>
         <div class="meta-line"><?= escape(implode(' | ', $summaryParts)) ?></div>

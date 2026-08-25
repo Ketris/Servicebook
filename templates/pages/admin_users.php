@@ -52,13 +52,13 @@
                     <td><?= $user['active'] ? 'Active' : 'Inactive' ?></td>
                     <td>
                         <?php if ($isLocked): ?>
-                            <span class="badge text-bg-danger">Locked until <?= escape(date('Y-m-d H:i', strtotime((string)$user['lock_until']))) ?></span>
+                            <span class="badge text-bg-danger">Locked until <?= escape(format_datetime((string)$user['lock_until'])) ?></span>
                         <?php else: ?>
                             <span class="badge text-bg-success">No lock</span>
                         <?php endif; ?>
                         <div class="small text-muted">Failed attempts: <?= escape((string)($user['failed_login_attempts'] ?? 0)) ?></div>
                     </td>
-                    <td><?= escape(date('Y-m-d', strtotime($user['created_at']))) ?></td>
+                    <td><?= escape(format_date($user['created_at'])) ?></td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-secondary" href="<?= url('admin/user_edit.php?id=' . $user['id']) ?>">Edit</a>
                         <form method="post" class="d-inline">

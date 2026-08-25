@@ -75,7 +75,7 @@
                                     <div><?= escape(describe_activity_entry($entry)) ?></div>
                                     <div class="small text-muted"><?= escape($actorName !== '' ? $actorName : 'System') ?></div>
                                 </div>
-                                <div class="small text-muted text-nowrap"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?></div>
+                                <div class="small text-muted text-nowrap"><?= escape(format_datetime($entry['created_at'])) ?></div>
                             </li>
                         <?php endforeach; ?>
                     </ul>

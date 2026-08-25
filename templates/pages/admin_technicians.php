@@ -27,7 +27,7 @@
                             <td><?= escape($technician['name']) ?></td>
                             <td><?= escape($technician['phone'] ?? '') ?></td>
                             <td><?= !empty($technician['active']) ? 'Active' : 'Inactive' ?></td>
-                            <td><?= escape(date('Y-m-d', strtotime($technician['created_at']))) ?></td>
+                            <td><?= escape(format_date($technician['created_at'])) ?></td>
                             <td><a class="btn btn-sm btn-outline-secondary" href="<?= url('admin/technician_edit.php?id=' . $technician['id']) ?>">Edit</a></td>
                         </tr>
                     <?php endforeach; ?>

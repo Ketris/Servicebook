@@ -3,8 +3,8 @@
         <div class="d-flex justify-content-between align-items-start mb-4 gap-3">
             <div>
                 <h1 class="h3 mb-1">Service Call</h1>
-                <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(date('Y-m-d H:i', strtotime($call['created_at']))) ?></p>
-                <p class="text-muted mb-0">Last Modified <?= escape(date('Y-m-d H:i', strtotime($lastModifiedAt))) ?> by <?= escape((string)$lastModifiedBy) ?></p>
+                <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(format_datetime($call['created_at'])) ?></p>
+                <p class="text-muted mb-0">Last Modified <?= escape(format_datetime($lastModifiedAt)) ?> by <?= escape((string)$lastModifiedBy) ?></p>
             </div>
             <div class="d-flex flex-wrap gap-2 justify-content-end">
                 <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
@@ -27,7 +27,7 @@
                 <div class="row g-4">
                     <div class="col-md-6"><div class="small text-muted">Customer</div><div><?= escape($call['customer']) ?></div></div>
                     <div class="col-md-6"><div class="small text-muted">Location</div><div><?= escape($call['location']) ?></div></div>
-                    <div class="col-md-4"><div class="small text-muted">Received</div><div><?= escape(date('Y-m-d H:i', strtotime($call['received_date']))) ?></div></div>
+                    <div class="col-md-4"><div class="small text-muted">Received</div><div><?= escape(format_datetime($call['received_date'])) ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Status</div><div><span class="badge <?= status_badge_class((string)$call['status']) ?>"><?= escape($call['status']) ?></span></div></div>
                     <div class="col-md-4"><div class="small text-muted">Assigned Technician</div><div><?= escape((string)($call['assigned_tech_name'] ?? 'Unassigned')) ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Customer Contact</div><div><?= escape($call['contact'] ?: '—') ?></div></div>
@@ -67,11 +67,11 @@
         <?php endif; ?>
 
         <?php if (!empty($relatedCalls)): ?>
-            <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><h2 class="h6 mb-0">Prior Calls For This Location</h2></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Job</th><th>Received</th><th>Status</th><th>Technician</th><th>Issue</th></tr></thead><tbody><?php foreach ($relatedCalls as $relatedCall): ?><tr><td><a href="<?= url('public/view_call.php?id=' . (int)$relatedCall['id']) ?>"><?= escape((string)$relatedCall['job_number']) ?></a></td><td><?= escape(date('Y-m-d H:i', strtotime((string)$relatedCall['received_date']))) ?></td><td><?= escape((string)$relatedCall['status']) ?></td><td><?= escape((string)($relatedCall['assigned_tech_name'] ?? 'Unassigned')) ?></td><td class="text-break"><?= escape(mb_strimwidth((string)($relatedCall['reported_issue'] ?? ''), 0, 80, '...')) ?></td></tr><?php endforeach; ?></tbody></table></div></div></div>
+            <div class="card border-0 shadow-sm mb-4"><div class="card-header bg-white"><h2 class="h6 mb-0">Prior Calls For This Location</h2></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Job</th><th>Received</th><th>Status</th><th>Technician</th><th>Issue</th></tr></thead><tbody><?php foreach ($relatedCalls as $relatedCall): ?><tr><td><a href="<?= url('public/view_call.php?id=' . (int)$relatedCall['id']) ?>"><?= escape((string)$relatedCall['job_number']) ?></a></td><td><?= escape(format_datetime((string)$relatedCall['received_date'])) ?></td><td><?= escape((string)$relatedCall['status']) ?></td><td><?= escape((string)($relatedCall['assigned_tech_name'] ?? 'Unassigned')) ?></td><td class="text-break"><?= escape(mb_strimwidth((string)($relatedCall['reported_issue'] ?? ''), 0, 80, '...')) ?></td></tr><?php endforeach; ?></tbody></table></div></div></div>
         <?php endif; ?>
 
         <?php if (!empty($history)): ?>
-            <div class="card border-0 shadow-sm"><div class="card-header bg-white"><h2 class="h6 mb-0">Change History</h2></div><div class="card-body"><ul class="list-unstyled mb-0"><?php foreach ($history as $entry): ?><li class="border-bottom py-2"><div class="small text-muted"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape(trim((string)($entry['changed_by_name'] ?? '')) ?: 'System') ?></div><div><strong><?= escape($entry['field_name']) ?></strong></div><?php if (!empty($entry['note'])): ?><div class="small text-muted"><?= escape($entry['note']) ?></div><?php endif; ?><?php if ($entry['old_value'] !== null || $entry['new_value'] !== null): ?><div class="small">From: <?= escape($entry['old_value'] ?? '—') ?> → <?= escape($entry['new_value'] ?? '—') ?></div><?php endif; ?></li><?php endforeach; ?></ul></div></div>
+            <div class="card border-0 shadow-sm"><div class="card-header bg-white"><h2 class="h6 mb-0">Change History</h2></div><div class="card-body"><ul class="list-unstyled mb-0"><?php foreach ($history as $entry): ?><li class="border-bottom py-2"><div class="small text-muted"><?= escape(format_datetime($entry['created_at'])) ?> · <?= escape(trim((string)($entry['changed_by_name'] ?? '')) ?: 'System') ?></div><div><strong><?= escape($entry['field_name']) ?></strong></div><?php if (!empty($entry['note'])): ?><div class="small text-muted"><?= escape($entry['note']) ?></div><?php endif; ?><?php if ($entry['old_value'] !== null || $entry['new_value'] !== null): ?><div class="small">From: <?= escape($entry['old_value'] ?? '—') ?> → <?= escape($entry['new_value'] ?? '—') ?></div><?php endif; ?></li><?php endforeach; ?></ul></div></div>
         <?php endif; ?>
     </div>
 </div>

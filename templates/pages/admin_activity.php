@@ -134,7 +134,7 @@ $paginationBaseParams = array_merge(['per_page' => $perPage], $filterParams);
                     <?php foreach ($activity as $entry): ?>
                         <?php $actorName = trim((string)($entry['changed_by_name'] ?? '')); ?>
                         <tr>
-                            <td class="text-nowrap"><?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?></td>
+                            <td class="text-nowrap"><?= escape(format_datetime($entry['created_at'])) ?></td>
                             <td><?= escape($actorName !== '' ? $actorName : 'System') ?></td>
                             <td>
                                 <?php if (!empty($entry['service_call_id'])): ?>

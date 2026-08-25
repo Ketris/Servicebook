@@ -6,6 +6,8 @@ class AppSettings
     private const DEFAULTS = [
         'site_title' => 'Servicebook',
         'site_logo_path' => '',
+        'date_format' => 'Y-m-d',
+        'time_format' => 'H:i',
         'saved_views_enabled' => '0',
         'bulk_management_enabled' => '0',
         'backup_auto_enabled' => '1',

@@ -16,8 +16,8 @@ $initialLocationNames = $selectedCustomerKey !== ''
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3">Edit Service Call</h1>
-                <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(date('Y-m-d H:i', strtotime($call['created_at']))) ?></p>
-                <p class="text-muted mb-0">Last Modified <?= escape(date('Y-m-d H:i', strtotime($lastModifiedAt))) ?> by <?= escape((string)$lastModifiedBy) ?></p>
+                <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(format_datetime($call['created_at'])) ?></p>
+                <p class="text-muted mb-0">Last Modified <?= escape(format_datetime($lastModifiedAt)) ?> by <?= escape((string)$lastModifiedBy) ?></p>
             </div>
             <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
         </div>
@@ -181,7 +181,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                                             </a>
                                         </td>
                                         <td><span class="badge text-bg-secondary"><?= escape((string)($relatedCall['match_label'] ?? 'Related')) ?></span></td>
-                                        <td><?= escape(date('Y-m-d H:i', strtotime((string)$relatedCall['received_date']))) ?></td>
+                                        <td><?= escape(format_datetime((string)$relatedCall['received_date'])) ?></td>
                                         <td><?= escape((string)$relatedCall['status']) ?></td>
                                         <td><?= escape((string)($relatedCall['assigned_tech_name'] ?? 'Unassigned')) ?></td>
                                         <td class="text-break"><?= escape(mb_strimwidth((string)($relatedCall['reported_issue'] ?? ''), 0, 80, '...')) ?></td>
@@ -205,7 +205,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                                 <li class="border-bottom py-2">
                                     <div class="small text-muted">
                                         <?php $actorName = trim((string)($entry['changed_by_name'] ?? '')); ?>
-                                        <?= escape(date('Y-m-d H:i', strtotime($entry['created_at']))) ?> · <?= escape($actorName !== '' ? $actorName : 'System') ?>
+                                        <?= escape(format_datetime($entry['created_at'])) ?> · <?= escape($actorName !== '' ? $actorName : 'System') ?>
                                 </div>
                                 <div><strong><?= escape($entry['field_name']) ?></strong></div>
                                 <?php if (!empty($entry['note'])): ?>
