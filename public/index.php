@@ -44,9 +44,9 @@ if ($page < 1) {
     $page = 1;
 }
 $allowedSortFields = ServiceCall::getSortableFields();
-$sort = trim((string)($_GET['sort'] ?? 'received_date'));
+$sort = trim((string)($_GET['sort'] ?? 'job_number'));
 if (!in_array($sort, $allowedSortFields, true)) {
-    $sort = 'received_date';
+    $sort = 'job_number';
 }
 $dir = strtolower(trim((string)($_GET['dir'] ?? 'desc')));
 if (!in_array($dir, ['asc', 'desc'], true)) {

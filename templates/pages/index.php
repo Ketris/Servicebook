@@ -136,7 +136,7 @@ $renderSortableHeader = function (string $field, string $label) use ($sort, $dir
     echo '<th data-column="' . escape($field) . '"><a class="text-reset text-decoration-none d-inline-flex align-items-center gap-1" href="'
         . escape($buildSortUrl($field)) . '">' . escape($label) . $indicator . '</a></th>';
 };
-$defaultSortField = 'received_date';
+$defaultSortField = 'job_number';
 $defaultSortDirection = 'desc';
 $resetTableParams = $indexQueryBase;
 $resetTableParams['sort'] = $defaultSortField;

@@ -42,7 +42,7 @@ class ServiceCall
         ?string $statusFilter = 'all',
         ?int $limit = null,
         int $offset = 0,
-        string $sortField = 'received_date',
+        string $sortField = 'job_number',
         string $sortDirection = 'desc'
     ): array {
         $pdo = Database::getConnection();
@@ -54,7 +54,7 @@ class ServiceCall
             $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $sortColumn = self::SORTABLE_COLUMNS[$sortField] ?? self::SORTABLE_COLUMNS['received_date'];
+        $sortColumn = self::SORTABLE_COLUMNS[$sortField] ?? self::SORTABLE_COLUMNS['job_number'];
         $sortDirection = strtolower($sortDirection) === 'asc' ? 'ASC' : 'DESC';
         $query .= ' ORDER BY ' . $sortColumn . ' ' . $sortDirection . ', sc.job_number ' . $sortDirection;
         if ($limit !== null) {
