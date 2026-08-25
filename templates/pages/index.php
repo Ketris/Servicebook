@@ -136,6 +136,13 @@ $renderSortableHeader = function (string $field, string $label) use ($sort, $dir
     echo '<th data-column="' . escape($field) . '"><a class="text-reset text-decoration-none d-inline-flex align-items-center gap-1" href="'
         . escape($buildSortUrl($field)) . '">' . escape($label) . $indicator . '</a></th>';
 };
+$defaultSortField = 'received_date';
+$defaultSortDirection = 'desc';
+$resetTableParams = $indexQueryBase;
+$resetTableParams['sort'] = $defaultSortField;
+$resetTableParams['dir'] = $defaultSortDirection;
+$resetTableParams['page'] = 1;
+$resetTableUrl = url('public/index.php?' . http_build_query($resetTableParams));
 ?>
 <div class="mb-3">
     <small class="text-muted">
@@ -175,7 +182,7 @@ $renderSortableHeader = function (string $field, string $label) use ($sort, $dir
         $pageEnd = $currentCount > 0 ? ($pageStart + $currentCount - 1) : 0;
         ?>
         <div class="d-flex align-items-center gap-2">
-        <small class="text-muted mb-0">Click a column header to sort. Drag edges to resize.</small>
+        <small class="text-muted mb-0">Click to sort. Drag edges to resize.</small>
             <div class="btn-group">
             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 dropdown-toggle" data-bs-toggle="dropdown">Columns</button>
             <ul class="dropdown-menu p-3" style="min-width: 220px;">
@@ -187,7 +194,7 @@ $renderSortableHeader = function (string $field, string $label) use ($sort, $dir
                 <?php endforeach; ?>
             </ul>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences">
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="reset-table-button" title="Reset table preferences" aria-label="Reset table preferences" data-reset-url="<?= escape($resetTableUrl) ?>">
                 <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Reset
             </button>
         </div>
@@ -622,7 +629,14 @@ $renderSortableHeader = function (string $field, string $label) use ($sort, $dir
 
     const resetButton = document.getElementById('reset-table-button');
     if (resetButton) {
-        resetButton.addEventListener('click', resetTablePreferences);
+        resetButton.addEventListener('click', () => {
+            resetTablePreferences();
+            // Sorting is applied server-side, so restoring the default sort requires a navigation.
+            const resetUrl = resetButton.dataset.resetUrl;
+            if (resetUrl) {
+                window.location.href = resetUrl;
+            }
+        });
     }
 
     updateVisibleRowCount();
