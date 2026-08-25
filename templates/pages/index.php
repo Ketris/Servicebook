@@ -118,10 +118,24 @@ $indexQueryBase = [
     'search' => $search,
     'filter' => $filter,
     'per_page' => $perPage,
+    'sort' => $sort,
+    'dir' => $dir,
 ];
 if ($savedViewsEnabled && $selectedViewId > 0) {
     $indexQueryBase['saved_view'] = $selectedViewId;
 }
+$buildSortUrl = function (string $field) use ($indexQueryBase, $sort, $dir): string {
+    $params = $indexQueryBase;
+    $params['sort'] = $field;
+    $params['dir'] = ($sort === $field && $dir === 'asc') ? 'desc' : 'asc';
+    $params['page'] = 1;
+    return url('public/index.php?' . http_build_query($params));
+};
+$renderSortableHeader = function (string $field, string $label) use ($sort, $dir, $buildSortUrl): void {
+    $indicator = $sort === $field ? ($dir === 'asc' ? ' &uarr;' : ' &darr;') : '';
+    echo '<th data-column="' . escape($field) . '"><a class="text-reset text-decoration-none d-inline-flex align-items-center gap-1" href="'
+        . escape($buildSortUrl($field)) . '">' . escape($label) . $indicator . '</a></th>';
+};
 ?>
 <div class="mb-3">
     <small class="text-muted">
@@ -161,7 +175,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         $pageEnd = $currentCount > 0 ? ($pageStart + $currentCount - 1) : 0;
         ?>
         <div class="d-flex align-items-center gap-2">
-        <small class="text-muted mb-0">Click to sort. Drag edges to resize.</small>
+        <small class="text-muted mb-0">Click a column header to sort. Drag edges to resize.</small>
             <div class="btn-group">
             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 dropdown-toggle" data-bs-toggle="dropdown">Columns</button>
             <ul class="dropdown-menu p-3" style="min-width: 220px;">
@@ -220,14 +234,14 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
             <th data-column="bulk_select" style="width:44px;">
                 <input type="checkbox" id="select-all-checkbox" onclick="toggleAllRows(this.checked)">
             </th>
-            <th data-column="job_number">Job #</th>
-            <th data-column="received_date">Received</th>
-            <th data-column="customer">Customer</th>
-            <th data-column="location">Location</th>
-            <th data-column="reported_issue">Issue</th>
-            <th data-column="po_number">PO Number</th>
-            <th data-column="status">Status</th>
-            <th data-column="assigned_tech_name">Technician</th>
+            <?php $renderSortableHeader('job_number', 'Job #'); ?>
+            <?php $renderSortableHeader('received_date', 'Received'); ?>
+            <?php $renderSortableHeader('customer', 'Customer'); ?>
+            <?php $renderSortableHeader('location', 'Location'); ?>
+            <?php $renderSortableHeader('reported_issue', 'Issue'); ?>
+            <?php $renderSortableHeader('po_number', 'PO Number'); ?>
+            <?php $renderSortableHeader('status', 'Status'); ?>
+            <?php $renderSortableHeader('assigned_tech_name', 'Technician'); ?>
         </tr>
         </thead>
         <tbody>
@@ -261,14 +275,14 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         <table class="table table-hover align-middle">
             <thead class="table-light">
             <tr>
-                <th data-column="job_number">Job #</th>
-                <th data-column="received_date">Received</th>
-                <th data-column="customer">Customer</th>
-                <th data-column="location">Location</th>
-                <th data-column="reported_issue">Issue</th>
-                <th data-column="po_number">PO Number</th>
-                <th data-column="status">Status</th>
-                <th data-column="assigned_tech_name">Technician</th>
+                <?php $renderSortableHeader('job_number', 'Job #'); ?>
+                <?php $renderSortableHeader('received_date', 'Received'); ?>
+                <?php $renderSortableHeader('customer', 'Customer'); ?>
+                <?php $renderSortableHeader('location', 'Location'); ?>
+                <?php $renderSortableHeader('reported_issue', 'Issue'); ?>
+                <?php $renderSortableHeader('po_number', 'PO Number'); ?>
+                <?php $renderSortableHeader('status', 'Status'); ?>
+                <?php $renderSortableHeader('assigned_tech_name', 'Technician'); ?>
             </tr>
             </thead>
             <tbody>
@@ -528,29 +542,12 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
 
     const tbody = table.querySelector('tbody');
     const headers = table.querySelectorAll('thead th');
-    let sortField = null;
-    let sortDirection = 1;
 
     headers.forEach(header => {
         header.style.position = 'relative';
         const handle = document.createElement('span');
         handle.className = 'resize-handle';
         header.appendChild(handle);
-
-        header.addEventListener('click', (event) => {
-            if (event.target === handle) return;
-            const field = header.dataset.column;
-            if (!field) return;
-            if (sortField === field) {
-                sortDirection = -sortDirection;
-            } else {
-                sortField = field;
-                sortDirection = 1;
-            }
-            state.sort = { field: sortField, direction: sortDirection };
-            persistState();
-            sortTable(field, sortDirection);
-        });
 
         handle.addEventListener('mousedown', (event) => {
             event.stopPropagation();
@@ -576,28 +573,11 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         });
     });
 
-    function sortTable(field, direction) {
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        rows.sort((a, b) => {
-            const aCell = a.querySelector(`[data-column="${field}"]`)?.textContent.trim() || '';
-            const bCell = b.querySelector(`[data-column="${field}"]`)?.textContent.trim() || '';
-            if (field === 'received_date') {
-                return direction * (new Date(aCell) - new Date(bCell));
-            }
-            if (!isNaN(aCell) && !isNaN(bCell)) {
-                return direction * ((parseFloat(aCell) || 0) - (parseFloat(bCell) || 0));
-            }
-            return direction * aCell.localeCompare(bCell, undefined, { numeric: true, sensitivity: 'base' });
-        });
-        rows.forEach(row => tbody.appendChild(row));
-    }
-
     const storageKey = 'servicebook_index_prefs';
     const savedState = JSON.parse(localStorage.getItem(storageKey) || '{}');
     const state = {
         columns: savedState.columns || {},
         widths: savedState.widths || {},
-        sort: savedState.sort || null,
     };
 
     function persistState() {
@@ -628,27 +608,15 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         }
     }
 
-    function applySavedSort() {
-        if (!state.sort || !state.sort.field) {
-            return;
-        }
-        sortField = state.sort.field;
-        sortDirection = state.sort.direction;
-        sortTable(sortField, sortDirection);
-    }
-
     function resetTablePreferences() {
         localStorage.removeItem(storageKey);
         Object.keys(state.columns).forEach(column => delete state.columns[column]);
         Object.keys(state.widths).forEach(column => delete state.widths[column]);
-        state.sort = null;
         headers.forEach(header => header.style.width = '');
         document.querySelectorAll('.column-toggle').forEach(input => {
             input.checked = true;
             applyColumnVisibility(input.dataset.column, true);
         });
-        sortField = null;
-        sortDirection = 1;
         updateVisibleRowCount();
     }
 
@@ -680,8 +648,6 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
             applyColumnWidth(field, state.widths[field]);
         }
     });
-
-    applySavedSort();
 
     ServicebookHotkeys.register('n', () => {
         window.location.href = <?= json_encode(url('public/new_call.php')) ?>;

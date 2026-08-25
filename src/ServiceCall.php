@@ -7,6 +7,18 @@ class ServiceCall
 {
     private const CLOSED_STATUSES = ['Complete', 'Cancelled'];
 
+    // Maps client-facing sort keys to their underlying SQL column expressions.
+    private const SORTABLE_COLUMNS = [
+        'job_number' => 'sc.job_number',
+        'received_date' => 'sc.received_date',
+        'customer' => 'sc.customer',
+        'location' => 'sc.location',
+        'reported_issue' => 'sc.reported_issue',
+        'po_number' => 'sc.po_number',
+        'status' => 'sc.status',
+        'assigned_tech_name' => 'assigned_tech_name',
+    ];
+
     public static function getStatusOptions(): array
     {
         return [
@@ -20,8 +32,19 @@ class ServiceCall
         ];
     }
 
-    public static function findAll(?string $search = null, ?string $statusFilter = 'all', ?int $limit = null, int $offset = 0): array
+    public static function getSortableFields(): array
     {
+        return array_keys(self::SORTABLE_COLUMNS);
+    }
+
+    public static function findAll(
+        ?string $search = null,
+        ?string $statusFilter = 'all',
+        ?int $limit = null,
+        int $offset = 0,
+        string $sortField = 'received_date',
+        string $sortDirection = 'desc'
+    ): array {
         $pdo = Database::getConnection();
         [$conditions, $params] = self::buildCallListConditions($search, $statusFilter);
 
@@ -31,7 +54,9 @@ class ServiceCall
             $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $query .= ' ORDER BY sc.received_date DESC, sc.job_number DESC';
+        $sortColumn = self::SORTABLE_COLUMNS[$sortField] ?? self::SORTABLE_COLUMNS['received_date'];
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'ASC' : 'DESC';
+        $query .= ' ORDER BY ' . $sortColumn . ' ' . $sortDirection . ', sc.job_number ' . $sortDirection;
         if ($limit !== null) {
             $safeLimit = max(1, min($limit, 500));
             $safeOffset = max(0, $offset);

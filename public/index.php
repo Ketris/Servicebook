@@ -43,6 +43,15 @@ $page = (int)($_GET['page'] ?? 1);
 if ($page < 1) {
     $page = 1;
 }
+$allowedSortFields = ServiceCall::getSortableFields();
+$sort = trim((string)($_GET['sort'] ?? 'received_date'));
+if (!in_array($sort, $allowedSortFields, true)) {
+    $sort = 'received_date';
+}
+$dir = strtolower(trim((string)($_GET['dir'] ?? 'desc')));
+if (!in_array($dir, ['asc', 'desc'], true)) {
+    $dir = 'desc';
+}
 $errors = [];
 $success = trim((string)($_SESSION['success_message'] ?? ''));
 unset($_SESSION['success_message']);
@@ -218,7 +227,7 @@ if ($page > $totalPages) {
 }
 $offset = ($page - 1) * $perPage;
 
-$calls = ServiceCall::findAll($search, $filter, $perPage, $offset);
+$calls = ServiceCall::findAll($search, $filter, $perPage, $offset, $sort, $dir);
 $stats = ServiceCall::getSummaryStats();
 $technicians = Technician::findAllActive();
 $savedViews = $savedViewsEnabled ? SavedView::listVisibleForUser($user, 'calls') : [];
@@ -236,6 +245,8 @@ Template::render('pages/index', [
     'allowedPerPage' => $allowedPerPage,
     'totalCalls' => $totalCalls,
     'totalPages' => $totalPages,
+    'sort' => $sort,
+    'dir' => $dir,
     'stats' => $stats,
     'technicians' => $technicians,
     'savedViews' => $savedViews,
