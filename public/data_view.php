@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
-require_once __DIR__ . '/../src/Technician.php';
+require_once __DIR__ . '/../src/User.php';
 require_once __DIR__ . '/../src/Helpers.php';
 require_once __DIR__ . '/../src/UserPreference.php';
 
@@ -87,9 +87,9 @@ if ($source === 'calls') {
 
     $techName = 'Unlinked Technician';
     if ($techId > 0) {
-        $technician = Technician::findById($techId);
+        $technician = User::findById($techId);
         if ($technician) {
-            $techName = (string)$technician['name'];
+            $techName = (string)$technician['display_name'];
         }
     }
 

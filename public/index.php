@@ -5,7 +5,7 @@ require_once __DIR__ . '/../src/Installation.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/SavedView.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
-require_once __DIR__ . '/../src/Technician.php';
+require_once __DIR__ . '/../src/User.php';
 require_once __DIR__ . '/../src/Template.php';
 require_once __DIR__ . '/../src/UserPreference.php';
 
@@ -229,7 +229,7 @@ $offset = ($page - 1) * $perPage;
 
 $calls = ServiceCall::findAll($search, $filter, $perPage, $offset, $sort, $dir);
 $stats = ServiceCall::getSummaryStats();
-$technicians = Technician::findAllActive();
+$technicians = User::findAllActiveTechnicians();
 $savedViews = $savedViewsEnabled ? SavedView::listVisibleForUser($user, 'calls') : [];
 
 Template::render('pages/index', [

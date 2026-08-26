@@ -35,7 +35,9 @@
                     <tr>
                         <th>Username</th>
                         <th>Display Name</th>
+                        <th>Phone</th>
                         <th>Role</th>
+                        <th>Technician</th>
                         <th>Status</th>
                         <th>Lockout</th>
                         <th>Created</th>
@@ -48,7 +50,9 @@
                 <tr>
                     <td><?= escape($user['username']) ?></td>
                     <td><?= escape($user['display_name']) ?></td>
+                    <td><?= escape($user['phone'] ?? '') ?></td>
                     <td><?= escape($user['role']) ?></td>
+                    <td><?= !empty($user['is_technician']) ? 'Yes' : 'No' ?></td>
                     <td><?= $user['active'] ? 'Active' : 'Inactive' ?></td>
                     <td>
                         <?php if ($isLocked): ?>

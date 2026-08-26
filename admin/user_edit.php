@@ -3,7 +3,6 @@ require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
 require_once __DIR__ . '/../src/User.php';
-require_once __DIR__ . '/../src/Technician.php';
 require_once __DIR__ . '/../src/Template.php';
 
 Auth::requireAdmin();
@@ -11,14 +10,14 @@ $user = Auth::currentUser();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 $record = $id ? User::findById($id) : null;
-$technicians = Technician::findAll();
 $allowedRoles = ['Administrator', 'Office Staff', 'Technician'];
 $errors = [];
 $values = [
     'username' => $record['username'] ?? '',
     'display_name' => $record['display_name'] ?? '',
     'role' => $record['role'] ?? 'Office Staff',
-    'technician_id' => $record['technician_id'] ?? '',
+    'is_technician' => $record['is_technician'] ?? 0,
+    'phone' => $record['phone'] ?? '',
     'password' => '',
     'active' => $record['active'] ?? 1,
 ];
@@ -27,16 +26,14 @@ $formatUserSummary = static function (array $data): string {
     $username = trim((string)($data['username'] ?? ''));
     $displayName = trim((string)($data['display_name'] ?? ''));
     $role = trim((string)($data['role'] ?? ''));
-    $technicianId = isset($data['technician_id']) && (int)$data['technician_id'] > 0
-        ? (string)(int)$data['technician_id']
-        : '-';
+    $isTechnician = !empty($data['is_technician']);
     $active = (int)($data['active'] ?? 0);
 
     return implode('; ', [
         'Username=' . ($username !== '' ? $username : '-'),
         'Display=' . ($displayName !== '' ? $displayName : '-'),
         'Role=' . ($role !== '' ? $role : '-'),
-        'Technician ID=' . $technicianId,
+        'Technician=' . ($isTechnician ? 'Yes' : 'No'),
         'Active=' . ($active === 1 ? 'Yes' : 'No'),
     ]);
 };
@@ -48,7 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values['username'] = trim($_POST['username'] ?? '');
         $values['display_name'] = trim($_POST['display_name'] ?? '');
         $values['role'] = $_POST['role'] ?? 'Office Staff';
-        $values['technician_id'] = isset($_POST['technician_id']) && $_POST['technician_id'] !== '' ? (int)$_POST['technician_id'] : '';
+        $values['is_technician'] = isset($_POST['is_technician']) ? 1 : 0;
+        $values['phone'] = trim($_POST['phone'] ?? '');
         $values['password'] = $_POST['password'] ?? '';
         $values['active'] = isset($_POST['active']) ? 1 : 0;
 
@@ -74,8 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors['role'] = 'Select a valid role.';
         }
 
-        if ($values['role'] === 'Technician' && $values['technician_id'] === '') {
-            $errors['technician_id'] = 'Technician role requires a linked technician profile.';
+        if (mb_strlen($values['phone']) > 100) {
+            $errors['phone'] = 'Phone cannot exceed 100 characters.';
+        }
+        if ($values['phone'] !== '' && !preg_match('/^[0-9+()\-.\s]{7,30}$/', $values['phone'])) {
+            $errors['phone'] = 'Phone number format is invalid.';
         }
 
         if (!$id && $values['password'] === '') {
@@ -122,7 +123,6 @@ Template::render('pages/admin_user_edit', [
     'title' => $id ? 'Edit User' : 'New User',
     'user' => $user,
     'id' => $id,
-    'technicians' => $technicians,
     'values' => $values,
     'errors' => $errors,
 ], 'layouts/app');

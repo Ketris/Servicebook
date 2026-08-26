@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
-require_once __DIR__ . '/../src/Technician.php';
+require_once __DIR__ . '/../src/User.php';
 require_once __DIR__ . '/../src/Template.php';
 
 Auth::requireLogin();
@@ -15,7 +15,7 @@ if (!$isAdministrator && $ownTechnicianId <= 0) {
     exit;
 }
 
-$technicianOptions = $isAdministrator ? Technician::findAllActive() : [];
+$technicianOptions = $isAdministrator ? User::findAllActiveTechnicians() : [];
 $technicianId = $isAdministrator
     ? (int)($_GET['technician_id'] ?? $ownTechnicianId)
     : $ownTechnicianId;

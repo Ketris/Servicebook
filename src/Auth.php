@@ -32,7 +32,7 @@ class Auth
     {
         self::$lastError = '';
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, password_hash, display_name, role, technician_id, active, failed_login_attempts, lock_until FROM users WHERE username = :username LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, password_hash, display_name, role, is_technician, active, failed_login_attempts, lock_until FROM users WHERE username = :username LIMIT 1');
         $stmt->execute([':username' => $username]);
         $user = $stmt->fetch();
 
@@ -58,12 +58,14 @@ class Auth
         if (password_verify($password, $user['password_hash'])) {
             self::start();
             session_regenerate_id(true);
+            $isTechnician = !empty($user['is_technician']);
             $_SESSION['user'] = [
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'display_name' => $user['display_name'],
                 'role' => $user['role'],
-                'technician_id' => $user['technician_id'] ?? null,
+                'is_technician' => $isTechnician,
+                'technician_id' => $isTechnician ? (int)$user['id'] : null,
             ];
 
             $resetStmt = $pdo->prepare('UPDATE users SET failed_login_attempts = 0, lock_until = NULL WHERE id = :id');
@@ -131,7 +133,7 @@ class Auth
         }
     }
 
-    // Keeps role/technician_id/active in sync with the DB so admin edits apply without re-login.
+    // Keeps role/is_technician/active in sync with the DB so admin edits apply without re-login.
     private static function refreshSessionUser(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
@@ -140,7 +142,7 @@ class Auth
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active FROM users WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, display_name, role, is_technician, active FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => (int)$sessionUser['id']]);
         $current = $stmt->fetch();
 
@@ -150,12 +152,14 @@ class Auth
             exit;
         }
 
+        $isTechnician = !empty($current['is_technician']);
         $_SESSION['user'] = [
             'id' => $current['id'],
             'username' => $current['username'],
             'display_name' => $current['display_name'],
             'role' => $current['role'],
-            'technician_id' => $current['technician_id'],
+            'is_technician' => $isTechnician,
+            'technician_id' => $isTechnician ? (int)$current['id'] : null,
         ];
     }
 

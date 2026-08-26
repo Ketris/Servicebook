@@ -182,6 +182,103 @@ SQL
             $stmt = $pdo->prepare('DELETE FROM settings WHERE name = :name');
             $stmt->execute([':name' => 'default_priority']);
         }
+
+        $isTechnicianColumns = $pdo->query("SHOW COLUMNS FROM users LIKE 'is_technician'")->fetchAll();
+        if (empty($isTechnicianColumns)) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN is_technician TINYINT(1) NOT NULL DEFAULT 0 AFTER role');
+        }
+
+        $userPhoneColumns = $pdo->query("SHOW COLUMNS FROM users LIKE 'phone'")->fetchAll();
+        if (empty($userPhoneColumns)) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN phone VARCHAR(100) DEFAULT NULL AFTER display_name');
+        }
+
+        $assignedUserColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'assigned_user_id'")->fetchAll();
+        if (empty($assignedUserColumns)) {
+            $pdo->exec('ALTER TABLE service_calls ADD COLUMN assigned_user_id INT UNSIGNED DEFAULT NULL AFTER assigned_tech');
+        }
+
+        self::migrateTechniciansIntoUsers($pdo);
+    }
+
+    // One-time fold of the standalone technicians table into users (is_technician flag + phone);
+    // becomes a no-op once the technicians table no longer exists.
+    private static function migrateTechniciansIntoUsers(\PDO $pdo): void
+    {
+        $techniciansTableExists = $pdo->query("SHOW TABLES LIKE 'technicians'")->fetchAll();
+        if (empty($techniciansTableExists)) {
+            return;
+        }
+
+        $technicianRows = $pdo->query('SELECT id, name, phone, active FROM technicians')->fetchAll();
+        $technicianIdToUserId = [];
+
+        foreach ($technicianRows as $technicianRow) {
+            $linkedUserStmt = $pdo->prepare('SELECT id FROM users WHERE technician_id = :technician_id LIMIT 1');
+            $linkedUserStmt->execute([':technician_id' => $technicianRow['id']]);
+            $linkedUser = $linkedUserStmt->fetch();
+
+            if ($linkedUser) {
+                $updateUserStmt = $pdo->prepare(
+                    'UPDATE users SET is_technician = 1, phone = COALESCE(phone, :phone) WHERE id = :id'
+                );
+                $updateUserStmt->execute([
+                    ':phone' => $technicianRow['phone'],
+                    ':id' => $linkedUser['id'],
+                ]);
+                $technicianIdToUserId[(int)$technicianRow['id']] = (int)$linkedUser['id'];
+                continue;
+            }
+
+            // No login was ever linked to this technician; create one so past call assignments survive.
+            $baseUsername = trim((string)preg_replace('/[^a-z0-9]+/i', '.', trim((string)$technicianRow['name'])), '.');
+            $baseUsername = $baseUsername !== '' ? strtolower($baseUsername) : 'technician';
+            $candidateUsername = $baseUsername;
+            $suffix = 1;
+            while (true) {
+                $existsStmt = $pdo->prepare('SELECT COUNT(*) FROM users WHERE username = :username');
+                $existsStmt->execute([':username' => $candidateUsername]);
+                if ((int)$existsStmt->fetchColumn() === 0) {
+                    break;
+                }
+                $suffix++;
+                $candidateUsername = $baseUsername . $suffix;
+            }
+
+            $insertUserStmt = $pdo->prepare(
+                'INSERT INTO users (username, password_hash, display_name, role, is_technician, phone, active, created_at)
+                 VALUES (:username, :password_hash, :display_name, :role, 1, :phone, :active, NOW())'
+            );
+            $insertUserStmt->execute([
+                ':username' => $candidateUsername,
+                ':password_hash' => password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT),
+                ':display_name' => $technicianRow['name'],
+                ':role' => 'Technician',
+                ':phone' => $technicianRow['phone'],
+                ':active' => $technicianRow['active'],
+            ]);
+            $technicianIdToUserId[(int)$technicianRow['id']] = (int)$pdo->lastInsertId();
+        }
+
+        foreach ($technicianIdToUserId as $technicianId => $userId) {
+            $assignStmt = $pdo->prepare(
+                'UPDATE service_calls SET assigned_user_id = :user_id WHERE assigned_tech = :technician_id'
+            );
+            $assignStmt->execute([':user_id' => $userId, ':technician_id' => $technicianId]);
+        }
+
+        $fkConstraint = $pdo->query(
+            "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'service_calls'
+               AND COLUMN_NAME = 'assigned_tech' AND REFERENCED_TABLE_NAME = 'technicians'"
+        )->fetch();
+        if ($fkConstraint) {
+            $pdo->exec('ALTER TABLE service_calls DROP FOREIGN KEY `' . $fkConstraint['CONSTRAINT_NAME'] . '`');
+        }
+
+        $pdo->exec('ALTER TABLE service_calls DROP COLUMN assigned_tech');
+        $pdo->exec('ALTER TABLE users DROP COLUMN technician_id');
+        $pdo->exec('DROP TABLE technicians');
     }
 
     public static function isInstallationMissingException(\PDOException $exception): bool

@@ -43,17 +43,16 @@
                 <?php endif; ?>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="technician_id">Linked Technician</label>
-                <select id="technician_id" name="technician_id" class="form-select">
-                    <option value="">None</option>
-                    <?php foreach ($technicians as $technician): ?>
-                        <option value="<?= escape((string)$technician['id']) ?>" <?= (string)$values['technician_id'] === (string)$technician['id'] ? 'selected' : '' ?>><?= escape($technician['name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <div class="form-text">Optional for Office Staff/Administrator accounts - grants access to that technician's "My Jobs" dashboard.</div>
-                <?php if (isset($errors['technician_id'])): ?>
-                    <div class="invalid-feedback d-block"><?= escape($errors['technician_id']) ?></div>
+                <label class="form-label" for="phone">Phone</label>
+                <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" maxlength="100">
+                <?php if (isset($errors['phone'])): ?>
+                    <div class="invalid-feedback d-block"><?= escape($errors['phone']) ?></div>
                 <?php endif; ?>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="is_technician" name="is_technician" value="1" <?= !empty($values['is_technician']) ? 'checked' : '' ?>>
+                <label class="form-check-label" for="is_technician">Technician</label>
+                <div class="form-text">Grants access to the "My Dashboard" queue and makes this person assignable to service calls.</div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="password">Password <?= $id ? '(leave blank to keep current)' : '' ?></label>

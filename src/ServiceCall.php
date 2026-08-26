@@ -48,8 +48,8 @@ class ServiceCall
         $pdo = Database::getConnection();
         [$conditions, $params] = self::buildCallListConditions($search, $statusFilter);
 
-        $query = 'SELECT sc.*, t.name AS assigned_tech_name FROM service_calls sc
-            LEFT JOIN technicians t ON sc.assigned_tech = t.id';
+        $query = 'SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name FROM service_calls sc
+            LEFT JOIN users t ON sc.assigned_user_id = t.id';
         if (!empty($conditions)) {
             $query .= ' WHERE ' . implode(' AND ', $conditions);
         }
@@ -114,7 +114,7 @@ class ServiceCall
             "SELECT
                 COUNT(*) AS total_calls,
                 SUM(CASE WHEN " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS open_calls,
-                SUM(CASE WHEN assigned_tech IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls,
+                SUM(CASE WHEN assigned_user_id IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls,
                 SUM(CASE WHEN " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
                 SUM(CASE WHEN " . self::closedStatusesSql('status') . " AND YEARWEEK(updated_at, 1) = YEARWEEK(CURDATE(), 1) THEN 1 ELSE 0 END) AS completed_this_week
              FROM service_calls"
@@ -145,11 +145,11 @@ class ServiceCall
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
             "SELECT
-                SUM(CASE WHEN assigned_tech = :technician_id_1 AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS active_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id_2 AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id_3 AND " . self::notClosedStatusesSql('status') . " AND status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_jobs,
-                SUM(CASE WHEN assigned_tech = :technician_id_4 AND " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
-                SUM(CASE WHEN assigned_tech IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls
+                SUM(CASE WHEN assigned_user_id = :technician_id_1 AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS active_jobs,
+                SUM(CASE WHEN assigned_user_id = :technician_id_2 AND status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
+                SUM(CASE WHEN assigned_user_id = :technician_id_3 AND " . self::notClosedStatusesSql('status') . " AND status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_jobs,
+                SUM(CASE WHEN assigned_user_id = :technician_id_4 AND " . self::closedStatusesSql('status') . " AND DATE(updated_at) = CURDATE() THEN 1 ELSE 0 END) AS completed_today,
+                SUM(CASE WHEN assigned_user_id IS NULL AND " . self::notClosedStatusesSql('status') . " THEN 1 ELSE 0 END) AS unassigned_open_calls
              FROM service_calls"
         );
         $stmt->execute([
@@ -178,10 +178,10 @@ class ServiceCall
         $safeLimit = max(1, min($limit, 500));
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            "SELECT sc.*, t.name AS assigned_tech_name
+            "SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name
              FROM service_calls sc
-             LEFT JOIN technicians t ON sc.assigned_tech = t.id
-             WHERE sc.assigned_tech = :technician_id
+             LEFT JOIN users t ON sc.assigned_user_id = t.id
+             WHERE sc.assigned_user_id = :technician_id
                              AND " . self::notClosedStatusesSql('sc.status') . "
              ORDER BY
                CASE sc.status
@@ -203,10 +203,10 @@ class ServiceCall
         $safeLimit = max(1, min($limit, 500));
         $pdo = Database::getConnection();
         $stmt = $pdo->query(
-            "SELECT sc.*, t.name AS assigned_tech_name
+            "SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name
              FROM service_calls sc
-             LEFT JOIN technicians t ON sc.assigned_tech = t.id
-             WHERE sc.assigned_tech IS NULL
+             LEFT JOIN users t ON sc.assigned_user_id = t.id
+             WHERE sc.assigned_user_id IS NULL
                              AND " . self::notClosedStatusesSql('sc.status') . "
              ORDER BY
                sc.received_date ASC
@@ -270,15 +270,15 @@ class ServiceCall
         $stmt = $pdo->query(
             "SELECT
                 t.id,
-                t.name,
+                t.display_name AS name,
                 SUM(CASE WHEN " . self::notClosedStatusesSql('sc.status') . " THEN 1 ELSE 0 END) AS open_jobs,
                 SUM(CASE WHEN sc.status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress_jobs,
                 SUM(CASE WHEN " . self::notClosedStatusesSql('sc.status') . " AND sc.status IN ('Waiting Parts', 'On Hold') THEN 1 ELSE 0 END) AS needs_attention_open
-             FROM technicians t
-             LEFT JOIN service_calls sc ON sc.assigned_tech = t.id
-             WHERE t.active = 1
-             GROUP BY t.id, t.name
-             ORDER BY open_jobs ASC, t.name ASC"
+             FROM users t
+             LEFT JOIN service_calls sc ON sc.assigned_user_id = t.id
+             WHERE t.is_technician = 1 AND t.active = 1
+             GROUP BY t.id, t.display_name
+             ORDER BY open_jobs ASC, t.display_name ASC"
         );
         $rows = $stmt->fetchAll();
 
@@ -300,9 +300,9 @@ class ServiceCall
     {
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT sc.*, t.name AS assigned_tech_name
+            'SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name
              FROM service_calls sc
-             LEFT JOIN technicians t ON sc.assigned_tech = t.id
+             LEFT JOIN users t ON sc.assigned_user_id = t.id
              WHERE sc.id = :id
              LIMIT 1'
         );
@@ -327,9 +327,9 @@ class ServiceCall
 
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare(
-            'SELECT sc.*, t.name AS assigned_tech_name
+            'SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name
              FROM service_calls sc
-             LEFT JOIN technicians t ON sc.assigned_tech = t.id
+             LEFT JOIN users t ON sc.assigned_user_id = t.id
              WHERE ' . implode(' AND ', $conditions) . '
              ORDER BY sc.received_date DESC, sc.id DESC
              LIMIT ' . $safeLimit
@@ -369,7 +369,7 @@ class ServiceCall
                 $jobNumber = self::generateJobNumber($receivedDate);
                 $stmt = $pdo->prepare(
                     'INSERT INTO service_calls
-                     (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_tech, status, created_by, created_at, updated_at)
+                     (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_user_id, status, created_by, created_at, updated_at)
                      VALUES
                      (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
                 );
@@ -437,7 +437,7 @@ class ServiceCall
                  po_number = :po_number,
                  reported_issue = :reported_issue,
                  internal_notes = :internal_notes,
-                 assigned_tech = :assigned_tech,
+                 assigned_user_id = :assigned_tech,
                  status = :status,
                  updated_at = :updated_at
                          WHERE id = :id
@@ -705,7 +705,7 @@ class ServiceCall
         }
 
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT name FROM technicians WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT display_name AS name FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $technicianId]);
         $row = $stmt->fetch();
         return $row ? (string)$row['name'] : (string)$technicianId;
@@ -828,7 +828,7 @@ class ServiceCall
         } elseif ($statusFilter === 'incomplete') {
             $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif ($statusFilter === 'unassigned') {
-            $conditions[] = 'sc.assigned_tech IS NULL';
+            $conditions[] = 'sc.assigned_user_id IS NULL';
             $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif (in_array($statusFilter, self::getStatusOptions(), true)) {
             $conditions[] = 'sc.status = :status';

@@ -32,7 +32,6 @@ $navbarTheme = in_array($app_theme ?? '', ['light', 'dark'], true) ? $app_theme 
                             <li><a class="dropdown-item" href="<?= url('admin/activity.php') ?>">Activity Log</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/records.php') ?>">Record Management</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/users.php') ?>">Users</a></li>
-                            <li><a class="dropdown-item" href="<?= url('admin/technicians.php') ?>">Technicians</a></li>
                             <li><a class="dropdown-item" href="<?= url('admin/settings.php') ?>">Settings</a></li>
                         </ul>
                     </li>

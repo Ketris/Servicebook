@@ -50,7 +50,6 @@
             </div>
             <div class="card-body d-grid gap-2">
                 <a class="btn btn-outline-primary" href="<?= url('admin/users.php') ?>">Manage Users</a>
-                <a class="btn btn-outline-primary" href="<?= url('admin/technicians.php') ?>">Manage Technicians</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/records.php') ?>">Reusable Records</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/activity.php') ?>">View Activity Log</a>
                 <a class="btn btn-outline-primary" href="<?= url('admin/settings.php') ?>">System Settings</a>

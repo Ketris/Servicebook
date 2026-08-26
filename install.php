@@ -10,7 +10,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 const INSTALLER_SESSION_KEY = 'installer_setup_data';
-const INSTALLER_REQUIRED_TABLES = ['users', 'technicians', 'settings', 'service_calls'];
+const INSTALLER_REQUIRED_TABLES = ['users', 'settings', 'service_calls'];
 
 $configPath = __DIR__ . '/src/config.php';
 $existingConfig = require $configPath;
@@ -263,18 +263,11 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(150) NOT NULL,
     role ENUM('Administrator','Office Staff','Technician') NOT NULL DEFAULT 'Office Staff',
-    technician_id INT UNSIGNED DEFAULT NULL,
+    is_technician TINYINT(1) NOT NULL DEFAULT 0,
+    phone VARCHAR(100) DEFAULT NULL,
     active TINYINT(1) NOT NULL DEFAULT 1,
     failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
     lock_until DATETIME DEFAULT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE IF NOT EXISTS technicians (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    phone VARCHAR(100) DEFAULT NULL,
-    active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -307,14 +300,14 @@ CREATE TABLE IF NOT EXISTS service_calls (
     po_number VARCHAR(100) DEFAULT NULL,
     reported_issue TEXT NOT NULL,
     internal_notes TEXT DEFAULT NULL,
-    assigned_tech INT UNSIGNED DEFAULT NULL,
+    assigned_user_id INT UNSIGNED DEFAULT NULL,
     status ENUM('New','Dispatched','In Progress','Waiting Parts','On Hold','Complete','Cancelled') NOT NULL DEFAULT 'New',
     created_by INT UNSIGNED DEFAULT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX (assigned_tech),
+    INDEX (assigned_user_id),
     INDEX (status),
-    FOREIGN KEY (assigned_tech) REFERENCES technicians(id) ON DELETE SET NULL
+    FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS service_call_history (

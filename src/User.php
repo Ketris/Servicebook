@@ -8,16 +8,24 @@ class User
     public static function findAll(): array
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->query('SELECT id, username, display_name, role, technician_id, active, failed_login_attempts, lock_until, created_at FROM users ORDER BY username');
+        $stmt = $pdo->query('SELECT id, username, display_name, role, is_technician, phone, active, failed_login_attempts, lock_until, created_at FROM users ORDER BY username');
         return $stmt->fetchAll();
     }
 
     public static function findById(int $id): array|null
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->prepare('SELECT id, username, display_name, role, technician_id, active, failed_login_attempts, lock_until FROM users WHERE id = :id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, display_name, role, is_technician, phone, active, failed_login_attempts, lock_until FROM users WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         return $stmt->fetch() ?: null;
+    }
+
+    // Technicians assignable to service calls; used by dashboards and call forms.
+    public static function findAllActiveTechnicians(): array
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->query("SELECT id, display_name AS name, phone FROM users WHERE is_technician = 1 AND active = 1 ORDER BY display_name");
+        return $stmt->fetchAll();
     }
 
     public static function save(array $data, int|null $id = null): int
@@ -28,19 +36,23 @@ class User
             throw new InvalidArgumentException('Invalid role selected.');
         }
 
-        $technicianId = !empty($data['technician_id']) ? (int)$data['technician_id'] : null;
+        // The Technician role always implies the technician flag; the flag can also be set independently.
+        $isTechnician = (!empty($data['is_technician']) || $role === 'Technician') ? 1 : 0;
+        $phone = trim((string)($data['phone'] ?? ''));
+        $phone = $phone !== '' ? $phone : null;
 
         if ($id === null) {
             $stmt = $pdo->prepare(
-                'INSERT INTO users (username, password_hash, display_name, role, technician_id, active, created_at)
-                 VALUES (:username, :password_hash, :display_name, :role, :technician_id, :active, NOW())'
+                'INSERT INTO users (username, password_hash, display_name, role, is_technician, phone, active, created_at)
+                 VALUES (:username, :password_hash, :display_name, :role, :is_technician, :phone, :active, NOW())'
             );
             $stmt->execute([
                 ':username' => $data['username'],
                 ':password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
                 ':display_name' => $data['display_name'],
                 ':role' => $role,
-                ':technician_id' => $technicianId,
+                ':is_technician' => $isTechnician,
+                ':phone' => $phone,
                 ':active' => $data['active'],
             ]);
             return (int)$pdo->lastInsertId();
@@ -49,12 +61,13 @@ class User
         $params = [
             ':display_name' => $data['display_name'],
             ':role' => $role,
-            ':technician_id' => $technicianId,
+            ':is_technician' => $isTechnician,
+            ':phone' => $phone,
             ':active' => $data['active'],
             ':id' => $id,
         ];
 
-        $sql = 'UPDATE users SET display_name = :display_name, role = :role, technician_id = :technician_id, active = :active';
+        $sql = 'UPDATE users SET display_name = :display_name, role = :role, is_technician = :is_technician, phone = :phone, active = :active';
 
         if (!empty($data['password'])) {
             $sql .= ', password_hash = :password_hash';
