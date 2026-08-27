@@ -54,23 +54,6 @@
 
         <div class="section"><div class="label">Reported Issue</div><div class="value"><?= escape($call['reported_issue']) ?></div></div>
         <div class="section"><div class="label">Internal Notes</div><div class="value"><?= escape($call['internal_notes'] ?: '-') ?></div></div>
-
-        <?php if (!empty($history)): ?>
-            <h2>Change History</h2>
-            <table>
-                <thead><tr><th>When</th><th>By</th><th>Change</th><th>Details</th></tr></thead>
-                <tbody>
-                    <?php foreach ($history as $entry): ?>
-                        <tr>
-                            <td><?= escape(format_datetime($entry['created_at'])) ?></td>
-                            <td><?= escape(trim((string)($entry['changed_by_name'] ?? '')) ?: 'System') ?></td>
-                            <td><?= escape($entry['field_name']) ?></td>
-                            <td><?php if (!empty($entry['note'])): ?><?= escape($entry['note']) ?><br><?php endif; ?><?php if ($entry['old_value'] !== null || $entry['new_value'] !== null): ?>From: <?= escape($entry['old_value'] ?? '-') ?> to <?= escape($entry['new_value'] ?? '-') ?><?php endif; ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
     </main>
     <script>
         window.addEventListener('load', function () {
