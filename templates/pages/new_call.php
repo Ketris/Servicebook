@@ -45,6 +45,13 @@ $initialLocationNames = $selectedCustomerKey !== ''
                     <input id="received_date" name="received_date" class="form-control" type="datetime-local" value="<?= escape($values['received_date']) ?>" required>
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label" for="job_number">Job # <span class="text-muted fw-normal">(optional — leave blank to auto-assign)</span></label>
+                    <input id="job_number" name="job_number" class="form-control" type="text" value="<?= escape($values['job_number']) ?>" maxlength="8" placeholder="Auto-assigned">
+                    <?php if (isset($errors['job_number'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['job_number']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label" for="assigned_tech">Assigned Technician</label>
                     <select id="assigned_tech" name="assigned_tech" class="form-select">
                         <option value="">Unassigned</option>

@@ -35,6 +35,7 @@ $canEditDetails = !$isTechnician || $canManage || $canSelfAssign;
 $errors = [];
 $values = [
     'received_date' => date('Y-m-d\TH:i', strtotime($call['received_date'])),
+    'job_number' => $call['job_number'],
     'customer' => $call['customer'],
     'location' => $call['location'],
     'contact' => $call['contact'],
@@ -208,7 +209,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . url('public/index.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {
-                    $errors['form'] = $exception->getMessage();
+                    if (str_contains($exception->getMessage(), 'Job number')) {
+                        $errors['job_number'] = $exception->getMessage();
+                    } else {
+                        $errors['form'] = $exception->getMessage();
+                    }
                     Logger::warning('Service call edit validation failed', [
                         'user_id' => $user['id'] ?? null,
                         'call_id' => $id,

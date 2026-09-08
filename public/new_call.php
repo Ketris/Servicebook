@@ -15,6 +15,7 @@ $statuses = ServiceCall::getStatusOptions();
 $errors = [];
 $values = [
     'received_date' => date('Y-m-d\TH:i'),
+    'job_number' => '',
     'customer' => '',
     'location' => '',
     'contact' => '',
@@ -81,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ' . url('public/index.php'));
                 exit;
             } catch (InvalidArgumentException $exception) {
-                $errors['form'] = $exception->getMessage();
+                if (str_contains($exception->getMessage(), 'Job number')) {
+                    $errors['job_number'] = $exception->getMessage();
+                } else {
+                    $errors['form'] = $exception->getMessage();
+                }
                 Logger::warning('New call validation failed', [
                     'user_id' => $user['id'] ?? null,
                     'error' => $exception->getMessage(),

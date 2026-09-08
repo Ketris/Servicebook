@@ -362,11 +362,18 @@ class ServiceCall
         $receivedDate = self::normalizeReceivedDate($data['received_date'] ?? '');
 
         if ($id === null) {
+            $customJobNumber = trim((string)($data['job_number'] ?? ''));
+            $hasCustomJobNumber = $customJobNumber !== '';
+            if ($hasCustomJobNumber) {
+                $customJobNumber = self::normalizeJobNumber($customJobNumber);
+                self::assertJobNumberAvailable($customJobNumber, null);
+            }
+
             $insertAttempts = 0;
-            $maxInsertAttempts = 5;
+            $maxInsertAttempts = $hasCustomJobNumber ? 1 : 5;
             while (true) {
                 $insertAttempts++;
-                $jobNumber = self::generateJobNumber($receivedDate);
+                $jobNumber = $hasCustomJobNumber ? $customJobNumber : self::generateJobNumber($receivedDate);
                 $stmt = $pdo->prepare(
                     'INSERT INTO service_calls
                      (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_user_id, status, created_by, created_at, updated_at)
@@ -394,13 +401,17 @@ class ServiceCall
                     ]);
                     break;
                 } catch (PDOException $exception) {
-                    if ($insertAttempts < $maxInsertAttempts && self::isDuplicateJobNumberException($exception)) {
+                    if (!$hasCustomJobNumber && $insertAttempts < $maxInsertAttempts && self::isDuplicateJobNumberException($exception)) {
                         Logger::warning('Duplicate job number collision detected during create; retrying insert', [
                             'job_number' => $jobNumber,
                             'attempt' => $insertAttempts,
                         ]);
                         usleep(random_int(10000, 50000));
                         continue;
+                    }
+
+                    if (self::isDuplicateJobNumberException($exception)) {
+                        throw new InvalidArgumentException('Job number "' . $jobNumber . '" is already in use by another call.');
                     }
 
                     throw $exception;
@@ -426,8 +437,20 @@ class ServiceCall
             throw new InvalidArgumentException('Could not validate the latest job version. Reload and try again.');
         }
 
+        $jobNumberInput = array_key_exists('job_number', $data) ? trim((string)$data['job_number']) : '';
+        if ($jobNumberInput === '') {
+            $jobNumber = (string)$oldCall['job_number'];
+        } else {
+            $jobNumber = self::normalizeJobNumber($jobNumberInput);
+            if ($jobNumber !== (string)$oldCall['job_number']) {
+                self::assertJobNumberAvailable($jobNumber, $id);
+            }
+        }
+        $data['job_number'] = $jobNumber;
+
         $stmt = $pdo->prepare(
             'UPDATE service_calls SET
+                 job_number = :job_number,
                  received_date = :received_date,
                  customer = :customer,
                  location = :location,
@@ -443,22 +466,31 @@ class ServiceCall
                          WHERE id = :id
                              AND updated_at = :expected_updated_at'
         );
-        $stmt->execute([
-            ':received_date' => $receivedDate,
-            ':customer' => $data['customer'],
-            ':location' => $data['location'],
-            ':contact' => $data['contact'],
-            ':phone' => $data['phone'],
-            ':email' => $data['email'],
-            ':po_number' => $data['po_number'],
-            ':reported_issue' => $data['reported_issue'],
-            ':internal_notes' => $data['internal_notes'],
-            ':assigned_tech' => $data['assigned_tech'] ?: null,
-            ':status' => $data['status'],
-            ':updated_at' => $now,
-            ':id' => $id,
-            ':expected_updated_at' => $expectedVersion,
-        ]);
+        try {
+            $stmt->execute([
+                ':job_number' => $jobNumber,
+                ':received_date' => $receivedDate,
+                ':customer' => $data['customer'],
+                ':location' => $data['location'],
+                ':contact' => $data['contact'],
+                ':phone' => $data['phone'],
+                ':email' => $data['email'],
+                ':po_number' => $data['po_number'],
+                ':reported_issue' => $data['reported_issue'],
+                ':internal_notes' => $data['internal_notes'],
+                ':assigned_tech' => $data['assigned_tech'] ?: null,
+                ':status' => $data['status'],
+                ':updated_at' => $now,
+                ':id' => $id,
+                ':expected_updated_at' => $expectedVersion,
+            ]);
+        } catch (PDOException $exception) {
+            if (self::isDuplicateJobNumberException($exception)) {
+                throw new InvalidArgumentException('Job number "' . $jobNumber . '" is already in use by another call.');
+            }
+
+            throw $exception;
+        }
 
         if ($stmt->rowCount() === 0) {
             $latestCall = self::findById($id);
@@ -644,7 +676,7 @@ class ServiceCall
 
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
-        $fields = ['received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
+        $fields = ['job_number', 'received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
         foreach ($fields as $field) {
             $oldValue = self::normalizeHistoryValue($field, $oldCall[$field] ?? null);
             $newValue = self::normalizeHistoryValue($field, $data[$field] ?? null);
@@ -914,6 +946,37 @@ class ServiceCall
         $sequence = (int)($row['max_sequence'] ?? 0) + 1;
 
         return sprintf('%s-%03d', $monthCode, $sequence);
+    }
+
+    private static function normalizeJobNumber(string $jobNumber): string
+    {
+        $normalized = strtoupper(trim($jobNumber));
+        if ($normalized === '') {
+            throw new InvalidArgumentException('Job number cannot be blank.');
+        }
+        if (!preg_match('/^\d{4}-\d{3}$/', $normalized)) {
+            throw new InvalidArgumentException('Job number must be in the format MMYY-### (e.g. 0926-001).');
+        }
+
+        return $normalized;
+    }
+
+    private static function assertJobNumberAvailable(string $jobNumber, ?int $excludeId): void
+    {
+        $pdo = Database::getConnection();
+        $query = 'SELECT id FROM service_calls WHERE job_number = :job_number';
+        $params = [':job_number' => $jobNumber];
+        if ($excludeId !== null) {
+            $query .= ' AND id <> :exclude_id';
+            $params[':exclude_id'] = $excludeId;
+        }
+        $query .= ' LIMIT 1';
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        if ($stmt->fetch()) {
+            throw new InvalidArgumentException('Job number "' . $jobNumber . '" is already in use by another call.');
+        }
     }
 
     private static function isDuplicateJobNumberException(PDOException $exception): bool
