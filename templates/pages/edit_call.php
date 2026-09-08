@@ -19,7 +19,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 <p class="text-muted mb-0">Job #<?= escape($call['job_number']) ?> | Created <?= escape(format_datetime($call['created_at'])) ?></p>
                 <p class="text-muted mb-0">Last Modified <?= escape(format_datetime($lastModifiedAt)) ?> by <?= escape((string)$lastModifiedBy) ?></p>
             </div>
-            <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
+            <div class="d-flex gap-2">
+                <button type="submit" form="edit-call-form" name="action" value="save_call" class="btn btn-primary">Save Changes</button>
+                <a class="btn btn-secondary" href="<?= $backUrl ?>">Back</a>
+            </div>
         </div>
         <?php if (!empty($errors['claim_job'])): ?>
             <div class="alert alert-danger"><?= escape($errors['claim_job']) ?></div>
@@ -30,8 +33,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
         <?php elseif ($isTechnician): ?>
             <div class="alert alert-warning">This job is not assigned to you, so you can only view it.</div>
         <?php endif; ?>
-        <form method="post" novalidate>
+        <form method="post" novalidate id="edit-call-form">
             <?= csrf_field() ?>
+            <!-- First submit button in the DOM becomes the Enter-key default; keep it Save, not Delete. -->
+            <button type="submit" name="action" value="save_call" class="visually-hidden" aria-hidden="true" tabindex="-1">Save Changes</button>
             <input type="hidden" name="expected_updated_at" value="<?= escape((string)($values['expected_updated_at'] ?? '')) ?>">
             <?php if (isset($errors['form'])): ?>
                 <div class="alert alert-danger" role="alert"><?= escape($errors['form']) ?></div>
@@ -57,7 +62,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="job_number">Job #</label>
-                    <input id="job_number" name="job_number" class="form-control" type="text" value="<?= escape($values['job_number']) ?>" maxlength="8" <?= $isTechnician ? 'disabled' : '' ?>>
+                    <input id="job_number" name="job_number" class="form-control" type="text" inputmode="numeric" autocomplete="off" value="<?= escape($values['job_number']) ?>" maxlength="8" <?= $isTechnician ? 'disabled' : '' ?>>
                     <?php if (isset($errors['job_number'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['job_number']) ?></div>
                     <?php endif; ?>
@@ -230,6 +235,15 @@ $initialLocationNames = $selectedCustomerKey !== ''
     </div>
 </div>
 <script>
+(function () {
+    const jobNumberInput = document.getElementById('job_number');
+    if (jobNumberInput && !jobNumberInput.disabled) {
+        jobNumberInput.addEventListener('input', function () {
+            const digits = jobNumberInput.value.replace(/\D/g, '').slice(0, 7);
+            jobNumberInput.value = digits.length > 4 ? digits.slice(0, 4) + '-' + digits.slice(4) : digits;
+        });
+    }
+})();
 (function () {
     const customerInput = document.getElementById('customer');
     const locationInput = document.getElementById('location');

@@ -206,7 +206,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 try {
                     ServiceCall::save($data, $id, $user, $expectedUpdatedAt);
-                    header('Location: ' . url('public/index.php'));
+                    $_SESSION['success_message'] = 'Service call updated.';
+                    header('Location: ' . url('public/view_call.php?id=' . $id));
                     exit;
                 } catch (InvalidArgumentException $exception) {
                     if (str_contains($exception->getMessage(), 'Job number')) {

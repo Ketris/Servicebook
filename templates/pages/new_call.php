@@ -46,7 +46,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="job_number">Job # <span class="text-muted fw-normal">(optional — leave blank to auto-assign)</span></label>
-                    <input id="job_number" name="job_number" class="form-control" type="text" value="<?= escape($values['job_number']) ?>" maxlength="8" placeholder="Auto-assigned">
+                    <input id="job_number" name="job_number" class="form-control" type="text" inputmode="numeric" autocomplete="off" value="<?= escape($values['job_number']) ?>" maxlength="8" placeholder="Auto-assigned">
                     <?php if (isset($errors['job_number'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['job_number']) ?></div>
                     <?php endif; ?>
@@ -125,6 +125,15 @@ $initialLocationNames = $selectedCustomerKey !== ''
     </div>
 </div>
 <script>
+(function () {
+    const jobNumberInput = document.getElementById('job_number');
+    if (jobNumberInput) {
+        jobNumberInput.addEventListener('input', function () {
+            const digits = jobNumberInput.value.replace(/\D/g, '').slice(0, 7);
+            jobNumberInput.value = digits.length > 4 ? digits.slice(0, 4) + '-' + digits.slice(4) : digits;
+        });
+    }
+})();
 (function () {
     const customerInput = document.getElementById('customer');
     const locationInput = document.getElementById('location');

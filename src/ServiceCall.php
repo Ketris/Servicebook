@@ -418,8 +418,8 @@ class ServiceCall
                 }
             }
 
-            ReusableRecord::syncFromServiceCall($data);
             $newId = (int)$pdo->lastInsertId();
+            ReusableRecord::syncFromServiceCall($data);
             self::logChange($newId, $actor, 'created', null, 'created', 'Service call created');
             return $newId;
         }
