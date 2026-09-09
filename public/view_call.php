@@ -27,6 +27,7 @@ $canSelfAssign = $hasTechnicianProfile
     && empty($call['assigned_tech'])
     && !in_array((string)$call['status'], ['Complete', 'Cancelled'], true);
 $canEditDetails = !$isTechnician || $canManage;
+$canDeleteCancelled = ($user['role'] ?? '') === 'Administrator' && ($call['status'] ?? '') === 'Cancelled';
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,6 +51,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Throwable $exception) {
                 $errors['form'] = 'Unable to claim this job right now.';
                 Logger::error('Unexpected error claiming service call from view', ['user_id' => $user['id'] ?? null, 'call_id' => $id, 'exception' => $exception->getMessage()]);
+            }
+        }
+    } elseif ($action === 'delete_cancelled') {
+        if (!$canDeleteCancelled) {
+            $errors['form'] = 'Only administrators can permanently delete cancelled calls.';
+        } else {
+            try {
+                ServiceCall::deleteCancelled($id, $user);
+                $_SESSION['success_message'] = 'Cancelled service call permanently deleted.';
+                header('Location: ' . url('public/index.php'));
+                exit;
+            } catch (InvalidArgumentException $exception) {
+                $errors['form'] = $exception->getMessage();
+                Logger::warning('Cancelled service call deletion validation failed', ['user_id' => $user['id'] ?? null, 'call_id' => $id, 'error' => $exception->getMessage()]);
+            } catch (Throwable $exception) {
+                $errors['form'] = 'Unable to permanently delete this service call right now.';
+                Logger::error('Unexpected error permanently deleting cancelled service call', ['user_id' => $user['id'] ?? null, 'call_id' => $id, 'exception' => $exception->getMessage()]);
             }
         }
     } elseif ($action === 'add_note') {
@@ -106,5 +124,6 @@ Template::render('pages/view_call', [
     'canManage' => $canManage,
     'canSelfAssign' => $canSelfAssign,
     'canEditDetails' => $canEditDetails,
+    'canDeleteCancelled' => $canDeleteCancelled,
     'backUrl' => $isTechnician ? url('public/technician_dashboard.php') : url('public/index.php'),
 ], 'layouts/app');

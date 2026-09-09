@@ -20,7 +20,7 @@ if (!$call) {
 }
 
 $isTechnician = ($user['role'] ?? '') === 'Technician';
-$canDelete = in_array((string)($user['role'] ?? ''), ['Administrator', 'Office Staff'], true);
+$canCancel = in_array((string)($user['role'] ?? ''), ['Administrator', 'Office Staff'], true);
 $canManage = !$isTechnician || (
     !empty($call['assigned_tech'])
     && !empty($user['technician_id'])
@@ -62,29 +62,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_validate($_POST['_csrf_token'] ?? null)) {
         $errors['form'] = 'Your session expired. Please reload and try again.';
     } else {
-        if ($action === 'delete_call') {
-            if (!$canDelete) {
-                $errors['form'] = 'You are not allowed to delete this job.';
+        if ($action === 'cancel_call') {
+            if (!$canCancel) {
+                $errors['form'] = 'You are not allowed to cancel this job.';
             } else {
                 try {
-                    $deleteResult = ServiceCall::delete($id, $user);
-                    if ($deleteResult === 'deleted') {
-                        $_SESSION['success_message'] = 'Service call permanently deleted.';
-                    } else {
-                        $_SESSION['success_message'] = 'Service call was not the newest entry, so it was marked Cancelled.';
-                    }
+                    ServiceCall::cancel($id, $user, $expectedUpdatedAt);
+                    $_SESSION['success_message'] = 'Service call cancelled.';
                     header('Location: ' . url('public/index.php'));
                     exit;
                 } catch (InvalidArgumentException $exception) {
                     $errors['form'] = $exception->getMessage();
-                    Logger::warning('Service call delete validation failed', [
+                    Logger::warning('Service call cancellation validation failed', [
                         'user_id' => $user['id'] ?? null,
                         'call_id' => $id,
                         'error' => $exception->getMessage(),
                     ]);
                 } catch (Throwable $exception) {
-                    $errors['form'] = 'Unable to delete this service call right now.';
-                    Logger::error('Unexpected error deleting service call', [
+                    $errors['form'] = 'Unable to cancel this service call right now.';
+                    Logger::error('Unexpected error cancelling service call', [
                         'user_id' => $user['id'] ?? null,
                         'call_id' => $id,
                         'exception' => $exception->getMessage(),
@@ -246,7 +242,7 @@ Template::render('pages/edit_call', [
     'lastModifiedAt' => $lastModifiedAt,
     'lastModifiedBy' => $lastModifiedBy,
     'isTechnician' => $isTechnician,
-    'canDelete' => $canDelete,
+    'canCancel' => $canCancel,
     'canManage' => $canManage,
     'canSelfAssign' => $canSelfAssign,
     'canEditDetails' => $canEditDetails,

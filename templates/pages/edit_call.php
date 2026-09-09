@@ -35,7 +35,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
         <?php endif; ?>
         <form method="post" novalidate id="edit-call-form">
             <?= csrf_field() ?>
-            <!-- First submit button in the DOM becomes the Enter-key default; keep it Save, not Delete. -->
+            <!-- First submit button in the DOM becomes the Enter-key default; keep it Save, not Cancel. -->
             <button type="submit" name="action" value="save_call" class="visually-hidden" aria-hidden="true" tabindex="-1">Save Changes</button>
             <input type="hidden" name="expected_updated_at" value="<?= escape((string)($values['expected_updated_at'] ?? '')) ?>">
             <?php if (isset($errors['form'])): ?>
@@ -129,15 +129,15 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 </div>
                 <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <?php if ($canDelete): ?>
+                        <?php if ($canCancel): ?>
                             <button
                                 type="submit"
                                 name="action"
-                                value="delete_call"
+                                value="cancel_call"
                                 class="btn btn-danger"
-                                onclick="return confirm('Permanently delete this service call? This cannot be undone.');"
+                                onclick="return confirm('Cancel this service call? The call will be kept for your records.');"
                             >
-                                Delete Call
+                                Cancel Call
                             </button>
                         <?php endif; ?>
                     </div>

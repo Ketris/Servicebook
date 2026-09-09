@@ -617,26 +617,30 @@ class ServiceCall
         self::save($data, $serviceCallId, $actor, $expectedUpdatedAt ?? (string)($call['updated_at'] ?? ''));
     }
 
-    public static function delete(int $serviceCallId, array $actor): string
+    public static function cancel(int $serviceCallId, array $actor, ?string $expectedUpdatedAt = null): void
     {
         $call = self::findById($serviceCallId);
         if (!$call) {
             throw new InvalidArgumentException('The selected job could not be found.');
         }
 
-        if (!self::isNewestCall($serviceCallId)) {
-            $data = self::buildTechnicianSaveData($call);
-            $data['status'] = 'Cancelled';
-            self::save($data, $serviceCallId, $actor);
+        $data = self::buildTechnicianSaveData($call);
+        $data['status'] = 'Cancelled';
+        self::save($data, $serviceCallId, $actor, $expectedUpdatedAt ?? (string)($call['updated_at'] ?? ''));
+    }
 
-            Logger::warning('Service call marked cancelled via delete action', [
-                'service_call_id' => $serviceCallId,
-                'job_number' => $call['job_number'] ?? null,
-                'updated_by_user_id' => $actor['id'] ?? null,
-                'updated_by_name' => self::resolveActorName($actor, 'System'),
-            ]);
+    public static function deleteCancelled(int $serviceCallId, array $actor): void
+    {
+        if (($actor['role'] ?? '') !== 'Administrator') {
+            throw new InvalidArgumentException('Only administrators can permanently delete cancelled calls.');
+        }
 
-            return 'cancelled';
+        $call = self::findById($serviceCallId);
+        if (!$call) {
+            throw new InvalidArgumentException('The selected job could not be found.');
+        }
+        if (($call['status'] ?? '') !== 'Cancelled') {
+            throw new InvalidArgumentException('Only cancelled calls can be permanently deleted.');
         }
 
         $pdo = Database::getConnection();
@@ -646,26 +650,23 @@ class ServiceCall
             $deleteHistoryStmt = $pdo->prepare('DELETE FROM service_call_history WHERE service_call_id = :id');
             $deleteHistoryStmt->execute([':id' => $serviceCallId]);
 
-            $deleteCallStmt = $pdo->prepare('DELETE FROM service_calls WHERE id = :id LIMIT 1');
-            $deleteCallStmt->execute([':id' => $serviceCallId]);
+            $deleteCallStmt = $pdo->prepare('DELETE FROM service_calls WHERE id = :id AND status = :status LIMIT 1');
+            $deleteCallStmt->execute([
+                ':id' => $serviceCallId,
+                ':status' => 'Cancelled',
+            ]);
 
-            $deleted = $deleteCallStmt->rowCount() > 0;
+            if ($deleteCallStmt->rowCount() !== 1) {
+                throw new RuntimeException('The call could not be deleted because its status changed.');
+            }
+
             $pdo->commit();
-
-            if ($deleted) {
-                Logger::warning('Service call permanently deleted', [
-                    'service_call_id' => $serviceCallId,
-                    'job_number' => $call['job_number'] ?? null,
-                    'deleted_by_user_id' => $actor['id'] ?? null,
-                    'deleted_by_name' => self::resolveActorName($actor, 'System'),
-                ]);
-            }
-
-            if (!$deleted) {
-                throw new RuntimeException('Unable to delete this service call right now.');
-            }
-
-            return 'deleted';
+            Logger::warning('Cancelled service call permanently deleted', [
+                'service_call_id' => $serviceCallId,
+                'job_number' => $call['job_number'] ?? null,
+                'deleted_by_user_id' => $actor['id'] ?? null,
+                'deleted_by_name' => self::resolveActorName($actor, 'System'),
+            ]);
         } catch (Throwable $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();

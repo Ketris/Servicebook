@@ -12,6 +12,13 @@
                 <?php if ($canEditDetails): ?>
                     <a class="btn btn-primary" href="<?= url('public/edit_call.php?id=' . (int)$call['id']) ?>">Edit Call</a>
                 <?php endif; ?>
+                <?php if ($canDeleteCancelled): ?>
+                    <form method="post" class="d-inline" onsubmit="return confirm('WARNING: This will permanently and irretrievably delete this cancelled call and its history. This data cannot be recovered. Continue?');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="delete_cancelled">
+                        <button type="submit" class="btn btn-danger">Delete Call</button>
+                    </form>
+                <?php endif; ?>
             </div>
         </div>
 
