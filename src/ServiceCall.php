@@ -858,6 +858,11 @@ class ServiceCall
         } elseif ($statusFilter === 'completed_week') {
             $conditions[] = self::closedStatusesSql('sc.status');
             $conditions[] = 'YEARWEEK(sc.updated_at, 1) = YEARWEEK(CURDATE(), 1)';
+        } elseif ($statusFilter === 'received_this_week') {
+            $conditions[] = 'YEARWEEK(sc.received_date, 1) = YEARWEEK(CURDATE(), 1)';
+        } elseif ($statusFilter === 'received_this_month') {
+            $conditions[] = 'YEAR(sc.received_date) = YEAR(CURDATE())';
+            $conditions[] = 'MONTH(sc.received_date) = MONTH(CURDATE())';
         } elseif ($statusFilter === 'incomplete') {
             $conditions[] = self::notClosedStatusesSql('sc.status');
         } elseif ($statusFilter === 'unassigned') {
@@ -878,6 +883,117 @@ class ServiceCall
                 COALESCE(sc.reported_issue, "")
             )) LIKE :term)';
             $params[':term'] = $term;
+        }
+
+        return [$conditions, $params];
+    }
+
+    public static function findAdvanced(
+        array $filters,
+        ?int $limit = null,
+        int $offset = 0,
+        string $sortField = 'job_number',
+        string $sortDirection = 'desc'
+    ): array {
+        $pdo = Database::getConnection();
+        [$conditions, $params] = self::buildAdvancedSearchConditions($filters);
+
+        $query = 'SELECT sc.*, sc.assigned_user_id AS assigned_tech, t.display_name AS assigned_tech_name FROM service_calls sc
+            LEFT JOIN users t ON sc.assigned_user_id = t.id';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $sortColumn = self::SORTABLE_COLUMNS[$sortField] ?? self::SORTABLE_COLUMNS['job_number'];
+        $sortDirection = strtolower($sortDirection) === 'asc' ? 'ASC' : 'DESC';
+        $query .= ' ORDER BY ' . $sortColumn . ' ' . $sortDirection . ', sc.job_number ' . $sortDirection;
+        if ($limit !== null) {
+            $safeLimit = max(1, min($limit, 500));
+            $safeOffset = max(0, $offset);
+            $query .= ' LIMIT ' . $safeLimit . ' OFFSET ' . $safeOffset;
+        }
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public static function countAdvanced(array $filters): int
+    {
+        [$conditions, $params] = self::buildAdvancedSearchConditions($filters);
+
+        $query = 'SELECT COUNT(*) AS call_count FROM service_calls sc';
+        if (!empty($conditions)) {
+            $query .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return (int)($row['call_count'] ?? 0);
+    }
+
+    private static function buildAdvancedSearchConditions(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        $likeFields = [
+            'job_number' => 'sc.job_number',
+            'customer' => 'sc.customer',
+            'location' => 'sc.location',
+            'contact' => 'sc.contact',
+            'phone' => 'sc.phone',
+            'email' => 'sc.email',
+            'po_number' => 'sc.po_number',
+            'reported_issue' => 'sc.reported_issue',
+            'internal_notes' => 'sc.internal_notes',
+        ];
+        foreach ($likeFields as $filterKey => $column) {
+            $value = trim((string)($filters[$filterKey] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+            $placeholder = ':adv_' . $filterKey;
+            $conditions[] = 'LOWER(' . $column . ') LIKE ' . $placeholder;
+            $params[$placeholder] = '%' . strtolower($value) . '%';
+        }
+
+        $status = trim((string)($filters['status'] ?? ''));
+        if ($status === 'open') {
+            $conditions[] = self::notClosedStatusesSql('sc.status');
+        } elseif ($status === 'closed') {
+            $conditions[] = self::closedStatusesSql('sc.status');
+        } elseif (in_array($status, self::getStatusOptions(), true)) {
+            $conditions[] = 'sc.status = :adv_status';
+            $params[':adv_status'] = $status;
+        }
+
+        $assignedTech = trim((string)($filters['assigned_tech'] ?? ''));
+        if ($assignedTech === 'unassigned') {
+            $conditions[] = 'sc.assigned_user_id IS NULL';
+        } elseif ($assignedTech !== '' && ctype_digit($assignedTech)) {
+            $conditions[] = 'sc.assigned_user_id = :adv_assigned_tech';
+            $params[':adv_assigned_tech'] = (int)$assignedTech;
+        }
+
+        $dateRanges = [
+            'received' => 'sc.received_date',
+            'updated' => 'sc.updated_at',
+        ];
+        foreach ($dateRanges as $prefix => $column) {
+            $from = trim((string)($filters[$prefix . '_from'] ?? ''));
+            if ($from !== '') {
+                $conditions[] = $column . ' >= :adv_' . $prefix . '_from';
+                $params[':adv_' . $prefix . '_from'] = $from . ' 00:00:00';
+            }
+            $to = trim((string)($filters[$prefix . '_to'] ?? ''));
+            if ($to !== '') {
+                $conditions[] = $column . ' <= :adv_' . $prefix . '_to';
+                $params[':adv_' . $prefix . '_to'] = $to . ' 23:59:59';
+            }
         }
 
         return [$conditions, $params];

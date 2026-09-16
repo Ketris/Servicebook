@@ -23,6 +23,7 @@ $navbarTheme = in_array($app_theme ?? '', ['light', 'dark'], true) ? $app_theme 
                 <?php endif; ?>
                 <li class="nav-item"><a class="nav-link" href="<?= url('public/new_call.php') ?>">New Call</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= url('public/index.php') ?>">All Calls</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= url('public/advanced_search.php') ?>">Search</a></li>
                 <?php if (($user['role'] ?? '') === 'Administrator'): ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administration</a>

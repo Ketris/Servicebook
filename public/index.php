@@ -23,7 +23,7 @@ $userDefaults = [
     'filter' => (string)($userDefaults['calls.default_filter'] ?? $defaultFilter),
     'per_page' => (int)($userDefaults['calls.default_per_page'] ?? 50),
 ];
-if (!in_array($userDefaults['filter'], ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+if (!in_array($userDefaults['filter'], ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'], true)) {
     $userDefaults['filter'] = $defaultFilter;
 }
 if (!in_array($userDefaults['per_page'], [25, 50, 100, 250], true)) {
@@ -55,7 +55,7 @@ if (!in_array($dir, ['asc', 'desc'], true)) {
 $errors = [];
 $success = trim((string)($_SESSION['success_message'] ?? ''));
 unset($_SESSION['success_message']);
-if (!in_array($filter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+if (!in_array($filter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'], true)) {
     $filter = $defaultFilter;
 }
 
@@ -69,7 +69,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
     if ($savedView) {
         $search = trim((string)($savedView['search_term'] ?? ''));
         $candidateFilter = trim((string)($savedView['filter_value'] ?? 'incomplete'));
-        if (in_array($candidateFilter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+        if (in_array($candidateFilter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'], true)) {
             $filter = $candidateFilter;
         }
         $activeViewName = (string)($savedView['view_name'] ?? '');
@@ -82,7 +82,7 @@ if ($savedViewsEnabled && $selectedViewId > 0) {
         if ($isRoleDefault) {
             $search = trim((string)($candidateView['search_term'] ?? ''));
             $candidateFilter = trim((string)($candidateView['filter_value'] ?? 'incomplete'));
-            if (in_array($candidateFilter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+            if (in_array($candidateFilter, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'], true)) {
                 $filter = $candidateFilter;
             }
             $selectedViewId = (int)($candidateView['id'] ?? 0);
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($action === 'save_list_defaults') {
                 $defaultFilterValue = trim((string)($_POST['default_filter'] ?? ''));
                 $defaultPerPageValue = (int)($_POST['default_per_page'] ?? 0);
-                if (!in_array($defaultFilterValue, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'], true)) {
+                if (!in_array($defaultFilterValue, ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'], true)) {
                     throw new InvalidArgumentException('Invalid default filter setting.');
                 }
                 if (!in_array($defaultPerPageValue, [25, 50, 100, 250], true)) {

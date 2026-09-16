@@ -5,19 +5,25 @@ $defaultFilter = trim((string)($defaultFilter ?? 'incomplete'));
 if ($defaultFilter === '') {
     $defaultFilter = 'incomplete';
 }
+if (!function_exists('callFilterLabel')) {
+    function callFilterLabel(string $filter): string
+    {
+        $labels = [
+            'all' => 'all',
+            'unassigned' => 'unassigned',
+            'completed_today' => 'closed today',
+            'completed_week' => 'closed this week',
+            'received_this_week' => 'received this week',
+            'received_this_month' => 'received this month',
+        ];
+        return $labels[$filter] ?? 'incomplete';
+    }
+}
 ?>
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 gap-3">
     <div>
         <h1 class="h3">Service Calls</h1>
-        <p class="text-muted mb-0">Showing <?=
-            $filter === 'all' ? 'all' : (
-                $filter === 'unassigned' ? 'unassigned' : (
-                    $filter === 'completed_today' ? 'closed today' : (
-                        $filter === 'completed_week' ? 'closed this week' : 'incomplete'
-                    )
-                )
-            )
-        ?> work orders. Search by job number, customer, location, PO number, or issue.</p>
+        <p class="text-muted mb-0">Showing <?= escape(callFilterLabel($filter)) ?> work orders. Search by job number, customer, location, PO number, or issue.</p>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         <?php
@@ -49,6 +55,8 @@ if ($defaultFilter === '') {
                 <option value="unassigned" <?= $filter === 'unassigned' ? 'selected' : '' ?>>Unassigned</option>
                 <option value="completed_today" <?= $filter === 'completed_today' ? 'selected' : '' ?>>Closed Today</option>
                 <option value="completed_week" <?= $filter === 'completed_week' ? 'selected' : '' ?>>Closed This Week</option>
+                <option value="received_this_week" <?= $filter === 'received_this_week' ? 'selected' : '' ?>>Received This Week</option>
+                <option value="received_this_month" <?= $filter === 'received_this_month' ? 'selected' : '' ?>>Received This Month</option>
                 <option value="all" <?= $filter === 'all' ? 'selected' : '' ?>>All</option>
             </select>
         </div>
@@ -105,13 +113,7 @@ if ($defaultFilter === '') {
 </div>
 <?php
 $showingStatus = false;
-$filterLabel = $filter === 'all' ? 'all' : (
-    $filter === 'unassigned' ? 'unassigned' : (
-        $filter === 'completed_today' ? 'closed today' : (
-            $filter === 'completed_week' ? 'closed this week' : 'incomplete'
-        )
-    )
-);
+$filterLabel = callFilterLabel($filter);
 $isUnsearchedNonDefaultList = $search === ''
     && ($filter !== $defaultFilter || (int)$perPage !== (int)($defaultPerPage ?? 50));
 $indexQueryBase = [

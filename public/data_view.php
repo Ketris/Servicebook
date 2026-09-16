@@ -25,7 +25,7 @@ if (!in_array($source, ['calls', 'search', 'technician', 'activity'], true)) {
 
 $search = trim((string)($params['search'] ?? ''));
 $filter = trim((string)($params['filter'] ?? 'incomplete'));
-$allowedFilters = ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week'];
+$allowedFilters = ['all', 'incomplete', 'unassigned', 'completed_today', 'completed_week', 'received_this_week', 'received_this_month'];
 if (!in_array($filter, $allowedFilters, true)) {
     $filter = 'incomplete';
 }
