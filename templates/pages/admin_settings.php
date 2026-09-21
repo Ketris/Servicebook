@@ -6,7 +6,7 @@
 /** @var int $maxBackupUploadBytes */
 /** @var array<int, string> $allowedDateFormats */
 /** @var array<int, string> $allowedTimeFormats */
-$currentPhoneRegion = (string)($settings['phone_region'] ?? 'US');
+$currentPhoneRegion = (string)($settings['phone_region'] ?? 'US/CAN');
 $backupRetention = (string)($settings['backup_retention_days'] ?? '60');
 $backupCadence = (string)($settings['backup_cadence'] ?? 'daily');
 $backupAutoEnabled = (string)($settings['backup_auto_enabled'] ?? '1') === '1';
@@ -128,10 +128,12 @@ $previewNow = time();
                             <div class="mt-4">
                                 <label class="form-label" for="phone_region">Phone Number Region</label>
                                 <select id="phone_region" name="phone_region" class="form-select">
-                                    <option value="US" <?= $currentPhoneRegion === 'US' ? 'selected' : '' ?>>United States</option>
-                                    <option value="CA" <?= $currentPhoneRegion === 'CA' ? 'selected' : '' ?>>Canada</option>
+                                    <option value="US/CAN" <?= $currentPhoneRegion === 'US/CAN' ? 'selected' : '' ?>>US / Canada</option>
+                                    <option value="Europe" <?= $currentPhoneRegion === 'Europe' ? 'selected' : '' ?>>Europe</option>
+                                    <option value="Asia" <?= $currentPhoneRegion === 'Asia' ? 'selected' : '' ?>>Asia</option>
+                                    <option value="Other" <?= $currentPhoneRegion === 'Other' ? 'selected' : '' ?>>Other</option>
                                 </select>
-                                <div class="form-text">Ten- and eleven-digit numbers are saved as (555) 123-4567. Other formats are left unchanged.</div>
+                                <div class="form-text">US / Canada ten- and eleven-digit numbers are saved as (555) 123-4567. European, Asian, and other numbers keep the notation entered.</div>
                             </div>
                         </div>
 

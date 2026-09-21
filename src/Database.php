@@ -186,7 +186,7 @@ SQL
 
         $phoneRegion = $pdo->query("SELECT COUNT(*) FROM settings WHERE name = 'phone_region'")->fetchColumn();
         if ((int)$phoneRegion === 0) {
-            $stmt = $pdo->prepare("INSERT INTO settings (name, value) VALUES ('phone_region', 'US')");
+            $stmt = $pdo->prepare("INSERT INTO settings (name, value) VALUES ('phone_region', 'US/CAN')");
             $stmt->execute();
         }
 

@@ -144,11 +144,11 @@ if (!function_exists('status_badge_class')) {
 }
 
 if (!function_exists('format_saved_phone')) {
-    function format_saved_phone(string $phone, string $region = 'US'): string
+    function format_saved_phone(string $phone, string $region = 'US/CAN'): string
     {
         $trimmed = trim($phone);
         $digits = preg_replace('/\D+/', '', $trimmed);
-        if ($digits === null || !in_array(strtoupper($region), ['US', 'CA'], true)) {
+        if ($digits === null || $region !== 'US/CAN') {
             return $trimmed;
         }
 

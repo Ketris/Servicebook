@@ -8,7 +8,7 @@ class AppSettings
         'site_logo_path' => '',
         'date_format' => 'Y-m-d',
         'time_format' => 'H:i',
-        'phone_region' => 'US',
+        'phone_region' => 'US/CAN',
         'saved_views_enabled' => '0',
         'bulk_management_enabled' => '0',
         'backup_auto_enabled' => '1',
@@ -47,6 +47,9 @@ class AppSettings
 
         if ($settings['site_title'] === '') {
             $settings['site_title'] = self::DEFAULTS['site_title'];
+        }
+        if ($settings['phone_region'] === 'US' || $settings['phone_region'] === 'CA') {
+            $settings['phone_region'] = 'US/CAN';
         }
         $settings['site_logo_path'] = self::normalizeLogoPath($settings['site_logo_path']);
 
