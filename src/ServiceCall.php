@@ -2,6 +2,8 @@
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/ReusableRecord.php';
+require_once __DIR__ . '/AppSettings.php';
+require_once __DIR__ . '/Helpers.php';
 
 class ServiceCall
 {
@@ -358,6 +360,7 @@ class ServiceCall
         $pdo = Database::getConnection();
         $now = date('Y-m-d H:i:s');
         $receivedDate = self::normalizeReceivedDate($data['received_date'] ?? '');
+        $data['phone'] = format_saved_phone((string)($data['phone'] ?? ''), AppSettings::get('phone_region'));
 
         if ($id === null) {
             $customJobNumber = trim((string)($data['job_number'] ?? ''));
@@ -374,9 +377,9 @@ class ServiceCall
                 $jobNumber = $hasCustomJobNumber ? $customJobNumber : self::generateJobNumber($receivedDate);
                 $stmt = $pdo->prepare(
                     'INSERT INTO service_calls
-                     (job_number, received_date, customer, location, contact, phone, email, po_number, reported_issue, internal_notes, assigned_user_id, status, created_by, created_at, updated_at)
+                     (job_number, received_date, customer, location, city, contact, phone, email, po_number, reported_issue, internal_notes, assigned_user_id, status, created_by, created_at, updated_at)
                      VALUES
-                     (:job_number, :received_date, :customer, :location, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
+                     (:job_number, :received_date, :customer, :location, :city, :contact, :phone, :email, :po_number, :reported_issue, :internal_notes, :assigned_tech, :status, :created_by, :created_at, :updated_at)'
                 );
 
                 try {
@@ -385,6 +388,7 @@ class ServiceCall
                         ':received_date' => $receivedDate,
                         ':customer' => $data['customer'],
                         ':location' => $data['location'],
+                        ':city' => $data['city'] ?? '',
                         ':contact' => $data['contact'],
                         ':phone' => $data['phone'],
                         ':email' => $data['email'],
@@ -452,6 +456,7 @@ class ServiceCall
                  received_date = :received_date,
                  customer = :customer,
                  location = :location,
+                 city = :city,
                  contact = :contact,
                  phone = :phone,
                  email = :email,
@@ -470,6 +475,7 @@ class ServiceCall
                 ':received_date' => $receivedDate,
                 ':customer' => $data['customer'],
                 ':location' => $data['location'],
+                ':city' => $data['city'] ?? '',
                 ':contact' => $data['contact'],
                 ':phone' => $data['phone'],
                 ':email' => $data['email'],
@@ -679,7 +685,7 @@ class ServiceCall
 
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
-        $fields = ['job_number', 'received_date', 'customer', 'location', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
+        $fields = ['job_number', 'received_date', 'customer', 'location', 'city', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
         foreach ($fields as $field) {
             $oldValue = self::normalizeHistoryValue($field, $oldCall[$field] ?? null);
             $newValue = self::normalizeHistoryValue($field, $data[$field] ?? null);
@@ -752,6 +758,7 @@ class ServiceCall
             'received_date' => date('Y-m-d\TH:i', strtotime((string)$call['received_date'])),
             'customer' => $call['customer'],
             'location' => $call['location'],
+            'city' => $call['city'] ?? '',
             'contact' => $call['contact'],
             'phone' => $call['phone'],
             'email' => $call['email'],

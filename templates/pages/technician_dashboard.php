@@ -107,7 +107,7 @@
                                 <div>
                                     <div class="small text-muted mb-1">Job #<?= escape($job['job_number']) ?></div>
                                     <h3 class="h5 mb-1"><?= escape($job['customer']) ?></h3>
-                                    <div class="text-muted"><?= escape($job['location']) ?></div>
+                                    <div class="text-muted"><?= escape($job['location']) ?><?= !empty($job['city']) ? ', ' . escape($job['city']) : '' ?></div>
                                 </div>
                                 <div class="job-card-meta">
                                     <span class="badge rounded-pill <?= status_badge_class((string)$job['status']) ?>"><?= escape($job['status']) ?></span>
@@ -207,7 +207,7 @@
                                 <div>
                                     <div class="small text-muted mb-1">Job #<?= escape($job['job_number']) ?></div>
                                     <h3 class="h6 mb-1"><?= escape($job['customer']) ?></h3>
-                                    <div class="text-muted small"><?= escape($job['location']) ?></div>
+                                    <div class="text-muted small"><?= escape($job['location']) ?><?= !empty($job['city']) ? ', ' . escape($job['city']) : '' ?></div>
                                 </div>
                             </div>
                             <div class="small text-muted mb-2">Received <?= escape(format_datetime($job['received_date'])) ?></div>

@@ -57,6 +57,13 @@ $initialLocationNames = $selectedCustomerKey !== ''
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label" for="city">Location City</label>
+                    <input id="city" name="city" class="form-control" type="text" value="<?= escape($values['city']) ?>" maxlength="150" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <?php if (isset($errors['city'])): ?>
+                        <div class="invalid-feedback d-block"><?= escape($errors['city']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label" for="received_date">Date / Time Received</label>
                     <input id="received_date" name="received_date" class="form-control" type="datetime-local" value="<?= escape($values['received_date']) ?>" required <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                 </div>
@@ -85,21 +92,22 @@ $initialLocationNames = $selectedCustomerKey !== ''
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="contact">Customer Contact</label>
+                    <label class="form-label" for="contact">Location Contact</label>
                     <input id="contact" name="contact" class="form-control" type="text" value="<?= escape($values['contact']) ?>" maxlength="150" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <div class="form-text">Contact for this location. Location defaults take priority over customer defaults.</div>
                     <?php if (isset($errors['contact'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['contact']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="phone">Phone Number</label>
+                    <label class="form-label" for="phone">Location Phone</label>
                     <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['phone'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['phone']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="email">Email</label>
+                    <label class="form-label" for="email">Location Email</label>
                     <input id="email" name="email" class="form-control" type="email" value="<?= escape($values['email']) ?>" maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['email'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['email']) ?></div>
@@ -250,9 +258,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
     const contactInput = document.getElementById('contact');
     const phoneInput = document.getElementById('phone');
     const emailInput = document.getElementById('email');
+    const cityInput = document.getElementById('city');
     const locationOptions = document.getElementById('location-options');
 
-    if (!customerInput || !locationInput || !contactInput || !phoneInput || !emailInput || !locationOptions) {
+    if (!customerInput || !locationInput || !contactInput || !phoneInput || !emailInput || !cityInput || !locationOptions) {
         return;
     }
 
@@ -321,9 +330,10 @@ $initialLocationNames = $selectedCustomerKey !== ''
         }
 
         fillIfEmpty(customerInput, profile.customer || '');
-        fillIfEmpty(contactInput, profile.contact || '');
-        fillIfEmpty(phoneInput, profile.phone || '');
-        fillIfEmpty(emailInput, profile.email || '');
+        if (profile.contact) contactInput.value = profile.contact;
+        if (profile.phone) phoneInput.value = profile.phone;
+        if (profile.email) emailInput.value = profile.email;
+        if (profile.city) cityInput.value = profile.city;
     }
 
     customerInput.addEventListener('input', syncLocationOptionsForCustomer);

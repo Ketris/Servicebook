@@ -179,6 +179,7 @@
                                             . ' ' . (string)($location['default_contact'] ?? '')
                                             . ' ' . (string)($location['default_phone'] ?? '')
                                             . ' ' . (string)($location['default_email'] ?? '')
+                                            . ' ' . (string)($location['city'] ?? '')
                                             . ' ' . $linkedCustomerName
                                         );
                                     ?>
@@ -188,13 +189,13 @@
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="action" value="update_location">
                                                 <input type="hidden" name="location_id" value="<?= escape((string)$location['id']) ?>">
-                                                <div class="col-md-3">
+                                                <div class="col-md-2">
                                                     <label class="form-label small">Name</label>
-                                                    <input class="form-control form-control-sm" name="location_name" maxlength="255" value="<?= escape($location['location_name']) ?>" required>
+                                                    <input class="form-control" name="location_name" maxlength="255" value="<?= escape($location['location_name']) ?>" required>
                                                 </div>
-                                                <div class="col-md-3">
+                                                <div class="col-md-2">
                                                     <label class="form-label small">Customer Link</label>
-                                                    <select class="form-select form-select-sm" name="customer_record_id">
+                                                    <select class="form-select" name="customer_record_id">
                                                         <option value="">No linked customer</option>
                                                         <?php foreach ($customers as $customer): ?>
                                                             <option value="<?= escape((string)$customer['id']) ?>" <?= (int)$customer['id'] === (int)($location['customer_record_id'] ?? 0) ? 'selected' : '' ?>><?= escape($customer['customer_name']) ?></option>
@@ -202,19 +203,23 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-md-2">
+                                                    <label class="form-label small">City</label>
+                                                    <input class="form-control" name="city" maxlength="150" value="<?= escape((string)($location['city'] ?? '')) ?>">
+                                                </div>
+                                                <div class="col-md-2">
                                                     <label class="form-label small">Contact</label>
-                                                    <input class="form-control form-control-sm" name="default_contact" maxlength="150" value="<?= escape((string)($location['default_contact'] ?? '')) ?>">
+                                                    <input class="form-control" name="default_contact" maxlength="150" value="<?= escape((string)($location['default_contact'] ?? '')) ?>">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">Phone</label>
-                                                    <input class="form-control form-control-sm" name="default_phone" maxlength="100" value="<?= escape((string)($location['default_phone'] ?? '')) ?>">
+                                                    <input class="form-control" name="default_phone" maxlength="100" value="<?= escape((string)($location['default_phone'] ?? '')) ?>">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label small">Email</label>
-                                                    <input class="form-control form-control-sm" name="default_email" maxlength="255" value="<?= escape((string)($location['default_email'] ?? '')) ?>">
+                                                    <input class="form-control" name="default_email" maxlength="255" value="<?= escape((string)($location['default_email'] ?? '')) ?>">
                                                 </div>
                                                 <div class="col-md-1 d-grid">
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                                                    <button type="submit" class="btn btn-outline-primary">Save</button>
                                                 </div>
                                             </form>
                                         </td>
@@ -236,6 +241,11 @@
 
     .filter-box .form-control {
         padding-right: 1.75rem;
+    }
+
+    #customerTableBody tr > td,
+    #locationTableBody tr > td {
+        padding: 1rem;
     }
 
     .filter-clear-btn {

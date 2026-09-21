@@ -115,7 +115,7 @@ $searchQueryBase = [
                     <td><?= escape($call['job_number']) ?></td>
                     <td><?= escape(format_datetime($call['received_date'])) ?></td>
                     <td><?= escape($call['customer']) ?></td>
-                    <td><?= escape($call['location']) ?></td>
+                    <td><?= escape($call['location']) ?><?= !empty($call['city']) ? ', ' . escape($call['city']) : '' ?></td>
                     <td><?= escape($call['assigned_tech_name'] ?: 'Unassigned') ?></td>
                     <td><?= escape($call['status']) ?></td>
                     <td><div class="truncate-2"><?= escape(truncate($call['reported_issue'], 120)) ?></div></td>

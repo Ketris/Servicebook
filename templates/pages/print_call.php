@@ -42,7 +42,7 @@
         <h2>Job #<?= escape((string)$call['job_number']) ?></h2>
         <div class="details">
             <div class="detail"><div class="label">Customer</div><div class="value"><?= escape($call['customer']) ?></div></div>
-            <div class="detail"><div class="label">Location</div><div class="value"><?= escape($call['location']) ?></div></div>
+            <div class="detail"><div class="label">Location</div><div class="value"><?= escape($call['location']) ?><?= !empty($call['city']) ? ', ' . escape($call['city']) : '' ?></div></div>
             <div class="detail"><div class="label">Status</div><div class="value"><?= escape($call['status']) ?></div></div>
             <div class="detail"><div class="label">Received</div><div class="value"><?= escape(format_datetime($call['received_date'])) ?></div></div>
             <div class="detail"><div class="label">Assigned Technician</div><div class="value"><?= escape((string)($call['assigned_tech_name'] ?? 'Unassigned')) ?></div></div>

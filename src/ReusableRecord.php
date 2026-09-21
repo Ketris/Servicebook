@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/AppSettings.php';
+require_once __DIR__ . '/Helpers.php';
 
 class ReusableRecord
 {
@@ -101,7 +103,7 @@ class ReusableRecord
             ':customer_key' => $newKey,
             ':customer_name' => mb_substr($name, 0, 255),
             ':default_contact' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
-            ':default_phone' => mb_substr(trim((string)($data['default_phone'] ?? '')), 0, 100),
+            ':default_phone' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
             ':default_email' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
             ':id' => $id,
         ]);
@@ -113,6 +115,26 @@ class ReusableRecord
                 ':old_key' => $oldKey,
             ]);
         }
+
+        $updateCallsStmt = $pdo->prepare(
+            'UPDATE service_calls sc
+             LEFT JOIN location_records lr ON LOWER(TRIM(sc.location)) = lr.location_key
+                AND lr.customer_record_id = :customer_record_id
+             SET sc.contact = CASE WHEN (lr.default_contact IS NULL OR lr.default_contact = "") AND :contact_check <> "" THEN :contact_value ELSE sc.contact END,
+                 sc.phone = CASE WHEN (lr.default_phone IS NULL OR lr.default_phone = "") AND :phone_check <> "" THEN :phone_value ELSE sc.phone END,
+                 sc.email = CASE WHEN (lr.default_email IS NULL OR lr.default_email = "") AND :email_check <> "" THEN :email_value ELSE sc.email END
+             WHERE LOWER(TRIM(sc.customer)) = :customer_key'
+        );
+        $updateCallsStmt->execute([
+            ':customer_record_id' => $id,
+            ':contact_check' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':contact_value' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':phone_check' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':phone_value' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':email_check' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':email_value' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':customer_key' => $newKey,
+        ]);
     }
 
     public static function mergeCustomers(int $sourceId, int $targetId): void
@@ -208,6 +230,7 @@ class ReusableRecord
             'UPDATE location_records
              SET location_key = :location_key,
                  location_name = :location_name,
+                 city = :city,
                  customer_record_id = :customer_record_id,
                  default_contact = :default_contact,
                  default_phone = :default_phone,
@@ -219,20 +242,34 @@ class ReusableRecord
         $stmt->execute([
             ':location_key' => $newKey,
             ':location_name' => mb_substr($name, 0, 255),
+            ':city' => mb_substr(trim((string)($data['city'] ?? '')), 0, 150),
             ':customer_record_id' => $customerRecordId,
             ':default_contact' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
-            ':default_phone' => mb_substr(trim((string)($data['default_phone'] ?? '')), 0, 100),
+            ':default_phone' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
             ':default_email' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
             ':id' => $id,
         ]);
 
-        if ($oldKey !== $newKey) {
-            $updateCallsStmt = $pdo->prepare('UPDATE service_calls SET location = :new_name WHERE LOWER(TRIM(location)) = :old_key');
-            $updateCallsStmt->execute([
-                ':new_name' => $name,
-                ':old_key' => $oldKey,
-            ]);
-        }
+        $updateCallsStmt = $pdo->prepare(
+            'UPDATE service_calls
+             SET location = :new_name,
+                 city = :city,
+                 contact = CASE WHEN :contact_check <> "" THEN :contact_value ELSE contact END,
+                 phone = CASE WHEN :phone_check <> "" THEN :phone_value ELSE phone END,
+                 email = CASE WHEN :email_check <> "" THEN :email_value ELSE email END
+             WHERE LOWER(TRIM(location)) = :old_key'
+        );
+        $updateCallsStmt->execute([
+            ':new_name' => $name,
+            ':city' => mb_substr(trim((string)($data['city'] ?? '')), 0, 150),
+            ':contact_check' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':contact_value' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':phone_check' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':phone_value' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':email_check' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':email_value' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':old_key' => $oldKey,
+        ]);
     }
 
     public static function mergeLocations(int $sourceId, int $targetId): void
@@ -337,11 +374,12 @@ class ReusableRecord
             $locationKey = self::buildKey($locationName);
             $stmt = $pdo->prepare(
                 'INSERT INTO location_records
-                 (location_key, location_name, customer_record_id, default_contact, default_phone, default_email, created_at, updated_at, last_used_at)
+                 (location_key, location_name, customer_record_id, city, default_contact, default_phone, default_email, created_at, updated_at, last_used_at)
                  VALUES
-                 (:location_key, :location_name, :customer_record_id, :default_contact, :default_phone, :default_email, NOW(), NOW(), NOW())
+                 (:location_key, :location_name, :customer_record_id, :city, :default_contact, :default_phone, :default_email, NOW(), NOW(), NOW())
                  ON DUPLICATE KEY UPDATE
                  location_name = VALUES(location_name),
+                 city = CASE WHEN VALUES(city) <> "" THEN VALUES(city) ELSE city END,
                  customer_record_id = CASE WHEN VALUES(customer_record_id) IS NOT NULL THEN VALUES(customer_record_id) ELSE customer_record_id END,
                  default_contact = CASE WHEN VALUES(default_contact) <> "" THEN VALUES(default_contact) ELSE default_contact END,
                  default_phone = CASE WHEN VALUES(default_phone) <> "" THEN VALUES(default_phone) ELSE default_phone END,
@@ -354,7 +392,8 @@ class ReusableRecord
                 ':location_name' => $locationName,
                 ':customer_record_id' => $customerId,
                 ':default_contact' => $contact,
-                ':default_phone' => $phone,
+                ':city' => mb_substr(trim((string)($callData['city'] ?? '')), 0, 150),
+                ':default_phone' => format_saved_phone($phone, AppSettings::get('phone_region')),
                 ':default_email' => $email,
             ]);
         }
@@ -383,7 +422,7 @@ class ReusableRecord
         $customers = $customerStmt->fetchAll();
 
         $locationStmt = $pdo->query(
-            'SELECT l.location_name, l.default_contact, l.default_phone, l.default_email,
+            'SELECT l.location_name, l.city, l.default_contact, l.default_phone, l.default_email,
                     c.customer_name
              FROM location_records l
              LEFT JOIN customer_records c ON l.customer_record_id = c.id
@@ -430,6 +469,7 @@ class ReusableRecord
                     'contact' => (string)($location['default_contact'] ?? ''),
                     'phone' => (string)($location['default_phone'] ?? ''),
                     'email' => (string)($location['default_email'] ?? ''),
+                    'city' => (string)($location['city'] ?? ''),
                 ];
             }
 
@@ -448,6 +488,7 @@ class ReusableRecord
                         'contact' => (string)($location['default_contact'] ?? ''),
                         'phone' => (string)($location['default_phone'] ?? ''),
                         'email' => (string)($location['default_email'] ?? ''),
+                        'city' => (string)($location['city'] ?? ''),
                     ];
                 }
             }
@@ -469,7 +510,7 @@ class ReusableRecord
         // Fallback for environments where reusable tables are not yet fully populated.
         if (empty($customerNames) || empty($locationNames)) {
             $fallbackRows = $pdo->query(
-                'SELECT customer, location, contact, phone, email
+                'SELECT customer, location, city, contact, phone, email
                  FROM service_calls
                  ORDER BY updated_at DESC, id DESC
                  LIMIT ' . ($safeLimit * 3)
@@ -486,6 +527,7 @@ class ReusableRecord
                             'phone' => trim((string)($row['phone'] ?? '')),
                             'email' => trim((string)($row['email'] ?? '')),
                             'location' => trim((string)($row['location'] ?? '')),
+                            'city' => trim((string)($row['city'] ?? '')),
                         ];
                     }
                 }
@@ -500,6 +542,7 @@ class ReusableRecord
                             'contact' => trim((string)($row['contact'] ?? '')),
                             'phone' => trim((string)($row['phone'] ?? '')),
                             'email' => trim((string)($row['email'] ?? '')),
+                            'city' => trim((string)($row['city'] ?? '')),
                         ];
                     }
 
@@ -518,6 +561,7 @@ class ReusableRecord
                                 'contact' => trim((string)($row['contact'] ?? '')),
                                 'phone' => trim((string)($row['phone'] ?? '')),
                                 'email' => trim((string)($row['email'] ?? '')),
+                                'city' => trim((string)($row['city'] ?? '')),
                             ];
                         }
                     }

@@ -33,7 +33,7 @@
             <div class="card-body">
                 <div class="row g-4">
                     <div class="col-md-6"><div class="small text-muted">Customer</div><div><?= escape($call['customer']) ?></div></div>
-                    <div class="col-md-6"><div class="small text-muted">Location</div><div><?= escape($call['location']) ?></div></div>
+                    <div class="col-md-6"><div class="small text-muted">Location</div><div><?= escape($call['location']) ?><?= !empty($call['city']) ? ', ' . escape($call['city']) : '' ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Received</div><div><?= escape(format_datetime($call['received_date'])) ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Status</div><div><span class="badge <?= status_badge_class((string)$call['status']) ?>"><?= escape($call['status']) ?></span></div></div>
                     <div class="col-md-4"><div class="small text-muted">Assigned Technician</div><div><?= escape((string)($call['assigned_tech_name'] ?? 'Unassigned')) ?></div></div>

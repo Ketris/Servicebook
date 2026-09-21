@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $beforeLocation = ReusableRecord::findLocationById($locationId) ?? [];
                 $afterLocation = [
                     'location_name' => $locationName,
+                    'city' => trim((string)($_POST['city'] ?? '')),
                     'customer_record_id' => (int)($_POST['customer_record_id'] ?? 0),
                     'default_contact' => trim((string)($_POST['default_contact'] ?? '')),
                     'default_phone' => trim((string)($_POST['default_phone'] ?? '')),
@@ -82,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 ReusableRecord::updateLocation($locationId, [
                     'location_name' => $locationName,
+                    'city' => $afterLocation['city'],
                     'customer_record_id' => $afterLocation['customer_record_id'],
                     'default_contact' => $afterLocation['default_contact'],
                     'default_phone' => $afterLocation['default_phone'],
@@ -93,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'location_record',
                     $formatRecordSummary($beforeLocation, [
                         'location_name' => 'Name',
+                        'city' => 'City',
                         'customer_record_id' => 'Customer ID',
                         'default_contact' => 'Contact',
                         'default_phone' => 'Phone',

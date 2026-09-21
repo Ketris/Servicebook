@@ -38,6 +38,7 @@ $values = [
     'job_number' => $call['job_number'],
     'customer' => $call['customer'],
     'location' => $call['location'],
+    'city' => $call['city'] ?? '',
     'contact' => $call['contact'],
     'phone' => $call['phone'],
     'email' => $call['email'],
@@ -157,6 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($values['location'] === '') {
                 $errors['location'] = 'Location is required.';
+            }
+            if (mb_strlen($values['city']) > 150) {
+                $errors['city'] = 'City cannot exceed 150 characters.';
             }
             if ($values['reported_issue'] === '') {
                 $errors['reported_issue'] = 'Reported issue is required.';

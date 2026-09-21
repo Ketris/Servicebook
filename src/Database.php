@@ -179,6 +179,11 @@ SQL
             $pdo->exec('ALTER TABLE location_records ADD COLUMN city VARCHAR(150) DEFAULT NULL AFTER location_name');
         }
 
+        $callCityColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'city'")->fetchAll();
+        if (empty($callCityColumns)) {
+            $pdo->exec('ALTER TABLE service_calls ADD COLUMN city VARCHAR(150) DEFAULT NULL AFTER location');
+        }
+
         $phoneRegion = $pdo->query("SELECT COUNT(*) FROM settings WHERE name = 'phone_region'")->fetchColumn();
         if ((int)$phoneRegion === 0) {
             $stmt = $pdo->prepare("INSERT INTO settings (name, value) VALUES ('phone_region', 'US')");

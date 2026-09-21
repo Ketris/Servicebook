@@ -267,7 +267,7 @@ $resetTableUrl = url('public/index.php?' . http_build_query($resetTableParams));
                     <td data-column="job_number"><?= escape($call['job_number']) ?></td>
                     <td data-column="received_date"><?= escape(format_datetime($call['received_date'])) ?></td>
                     <td data-column="customer"><?= escape($call['customer']) ?></td>
-                    <td data-column="location"><?= escape($call['location']) ?></td>
+                    <td data-column="location"><?= escape($call['location']) ?><?= !empty($call['city']) ? ', ' . escape($call['city']) : '' ?></td>
                     <td data-column="reported_issue"><div class="truncate-2"><?= escape(truncate($call['reported_issue'], 120)) ?></div></td>
                     <td data-column="po_number"><?= escape($call['po_number']) ?></td>
                     <td data-column="status"><?= escape($call['status']) ?></td>
@@ -305,7 +305,7 @@ $resetTableUrl = url('public/index.php?' . http_build_query($resetTableParams));
                         <td data-column="job_number"><?= escape($call['job_number']) ?></td>
                         <td data-column="received_date"><?= escape(format_datetime($call['received_date'])) ?></td>
                         <td data-column="customer"><?= escape($call['customer']) ?></td>
-                        <td data-column="location"><?= escape($call['location']) ?></td>
+                        <td data-column="location"><?= escape($call['location']) ?><?= !empty($call['city']) ? ', ' . escape($call['city']) : '' ?></td>
                         <td data-column="reported_issue"><div class="truncate-2"><?= escape(truncate($call['reported_issue'], 120)) ?></div></td>
                         <td data-column="po_number"><?= escape($call['po_number']) ?></td>
                         <td data-column="status"><?= escape($call['status']) ?></td>
@@ -395,7 +395,6 @@ $resetTableUrl = url('public/index.php?' . http_build_query($resetTableParams));
                         <select class="form-select form-select-sm" id="bulk-status" name="bulk_status" form="bulk-action-form">
                             <option value="">No status change</option>
                             <option value="New">New</option>
-                            <option value="Dispatched">Dispatched</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Waiting Parts">Waiting Parts</option>
                             <option value="On Hold">On Hold</option>
