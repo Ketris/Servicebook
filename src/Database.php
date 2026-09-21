@@ -184,6 +184,37 @@ SQL
             $pdo->exec('ALTER TABLE service_calls ADD COLUMN city VARCHAR(150) DEFAULT NULL AFTER location');
         }
 
+        $customerPointerColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'customer_record_id'")->fetchAll();
+        if (empty($customerPointerColumns)) {
+            $pdo->exec('ALTER TABLE service_calls ADD COLUMN customer_record_id INT UNSIGNED DEFAULT NULL AFTER customer');
+        }
+        $locationPointerColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'location_record_id'")->fetchAll();
+        if (empty($locationPointerColumns)) {
+            $pdo->exec('ALTER TABLE service_calls ADD COLUMN location_record_id INT UNSIGNED DEFAULT NULL AFTER location');
+        }
+
+        $customerPointerIndexes = $pdo->query("SHOW INDEX FROM service_calls WHERE Key_name = 'idx_service_calls_customer_record_id'")->fetchAll();
+        if (empty($customerPointerIndexes)) {
+            $pdo->exec('ALTER TABLE service_calls ADD INDEX idx_service_calls_customer_record_id (customer_record_id)');
+        }
+        $locationPointerIndexes = $pdo->query("SHOW INDEX FROM service_calls WHERE Key_name = 'idx_service_calls_location_record_id'")->fetchAll();
+        if (empty($locationPointerIndexes)) {
+            $pdo->exec('ALTER TABLE service_calls ADD INDEX idx_service_calls_location_record_id (location_record_id)');
+        }
+
+        $pdo->exec(
+            'UPDATE service_calls sc
+             INNER JOIN customer_records c ON c.customer_key = LOWER(TRIM(sc.customer))
+             SET sc.customer_record_id = c.id
+             WHERE sc.customer_record_id IS NULL'
+        );
+        $pdo->exec(
+            'UPDATE service_calls sc
+             INNER JOIN location_records l ON l.location_key = LOWER(TRIM(sc.location))
+             SET sc.location_record_id = l.id
+             WHERE sc.location_record_id IS NULL'
+        );
+
         $phoneRegion = $pdo->query("SELECT COUNT(*) FROM settings WHERE name = 'phone_region'")->fetchColumn();
         if ((int)$phoneRegion === 0) {
             $stmt = $pdo->prepare("INSERT INTO settings (name, value) VALUES ('phone_region', 'US/CAN')");

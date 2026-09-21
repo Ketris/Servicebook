@@ -293,7 +293,9 @@ CREATE TABLE IF NOT EXISTS service_calls (
     job_number VARCHAR(16) NOT NULL UNIQUE,
     received_date DATETIME NOT NULL,
     customer VARCHAR(255) NOT NULL,
+    customer_record_id INT UNSIGNED DEFAULT NULL,
     location VARCHAR(255) NOT NULL,
+    location_record_id INT UNSIGNED DEFAULT NULL,
     city VARCHAR(150) DEFAULT NULL,
     contact VARCHAR(150) DEFAULT NULL,
     phone VARCHAR(100) DEFAULT NULL,
@@ -307,6 +309,8 @@ CREATE TABLE IF NOT EXISTS service_calls (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX (assigned_user_id),
+    INDEX (customer_record_id),
+    INDEX (location_record_id),
     INDEX (status),
     FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

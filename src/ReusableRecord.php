@@ -5,6 +5,42 @@ require_once __DIR__ . '/Helpers.php';
 
 class ReusableRecord
 {
+    public static function linkServiceCall(int $serviceCallId, array $callData): void
+    {
+        if ($serviceCallId <= 0) {
+            return;
+        }
+
+        $pdo = Database::getConnection();
+        $customerKey = self::buildKey((string)($callData['customer'] ?? ''));
+        $locationKey = self::buildKey((string)($callData['location'] ?? ''));
+        $customerId = null;
+        $locationId = null;
+
+        if ($customerKey !== '') {
+            $stmt = $pdo->prepare('SELECT id FROM customer_records WHERE customer_key = :customer_key LIMIT 1');
+            $stmt->execute([':customer_key' => $customerKey]);
+            $customerId = ($row = $stmt->fetch()) ? (int)$row['id'] : null;
+        }
+        if ($locationKey !== '') {
+            $stmt = $pdo->prepare('SELECT id FROM location_records WHERE location_key = :location_key LIMIT 1');
+            $stmt->execute([':location_key' => $locationKey]);
+            $locationId = ($row = $stmt->fetch()) ? (int)$row['id'] : null;
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE service_calls
+             SET customer_record_id = :customer_record_id,
+                 location_record_id = :location_record_id
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            ':customer_record_id' => $customerId,
+            ':location_record_id' => $locationId,
+            ':id' => $serviceCallId,
+        ]);
+    }
+
     public static function listCustomers(string $search = '', int $limit = 250): array
     {
         self::backfillIfEmpty();
@@ -118,12 +154,11 @@ class ReusableRecord
 
         $updateCallsStmt = $pdo->prepare(
             'UPDATE service_calls sc
-             LEFT JOIN location_records lr ON LOWER(TRIM(sc.location)) = lr.location_key
-                AND lr.customer_record_id = :customer_record_id
+             LEFT JOIN location_records lr ON sc.location_record_id = lr.id
              SET sc.contact = CASE WHEN (lr.default_contact IS NULL OR lr.default_contact = "") AND :contact_check <> "" THEN :contact_value ELSE sc.contact END,
                  sc.phone = CASE WHEN (lr.default_phone IS NULL OR lr.default_phone = "") AND :phone_check <> "" THEN :phone_value ELSE sc.phone END,
                  sc.email = CASE WHEN (lr.default_email IS NULL OR lr.default_email = "") AND :email_check <> "" THEN :email_value ELSE sc.email END
-             WHERE LOWER(TRIM(sc.customer)) = :customer_key'
+             WHERE sc.customer_record_id = :customer_record_id'
         );
         $updateCallsStmt->execute([
             ':customer_record_id' => $id,
@@ -178,6 +213,12 @@ class ReusableRecord
             $renameCalls->execute([
                 ':target_name' => (string)$target['customer_name'],
                 ':source_key' => (string)$source['customer_key'],
+            ]);
+
+            $repointCalls = $pdo->prepare('UPDATE service_calls SET customer_record_id = :target_id WHERE customer_record_id = :source_id');
+            $repointCalls->execute([
+                ':target_id' => $targetId,
+                ':source_id' => $sourceId,
             ]);
 
             $deleteSource = $pdo->prepare('DELETE FROM customer_records WHERE id = :source_id');
@@ -257,6 +298,26 @@ class ReusableRecord
                  contact = CASE WHEN :contact_check <> "" THEN :contact_value ELSE contact END,
                  phone = CASE WHEN :phone_check <> "" THEN :phone_value ELSE phone END,
                  email = CASE WHEN :email_check <> "" THEN :email_value ELSE email END
+             WHERE location_record_id = :location_record_id'
+        );
+        $updateCallsStmt->execute([
+            ':new_name' => $name,
+            ':city' => mb_substr(trim((string)($data['city'] ?? '')), 0, 150),
+            ':contact_check' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':contact_value' => mb_substr(trim((string)($data['default_contact'] ?? '')), 0, 150),
+            ':phone_check' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':phone_value' => mb_substr(format_saved_phone((string)($data['default_phone'] ?? ''), AppSettings::get('phone_region')), 0, 100),
+            ':email_check' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':email_value' => mb_substr(trim((string)($data['default_email'] ?? '')), 0, 255),
+            ':location_record_id' => $id,
+        ]);
+        $updateCallsStmt = $pdo->prepare(
+            'UPDATE service_calls
+             SET location = :new_name,
+                 city = :city,
+                 contact = CASE WHEN :contact_check <> "" THEN :contact_value ELSE contact END,
+                 phone = CASE WHEN :phone_check <> "" THEN :phone_value ELSE phone END,
+                 email = CASE WHEN :email_check <> "" THEN :email_value ELSE email END
              WHERE LOWER(TRIM(location)) = :old_key'
         );
         $updateCallsStmt->execute([
@@ -309,6 +370,12 @@ class ReusableRecord
             $renameCalls->execute([
                 ':target_name' => (string)$target['location_name'],
                 ':source_key' => (string)$source['location_key'],
+            ]);
+
+            $repointCalls = $pdo->prepare('UPDATE service_calls SET location_record_id = :target_id WHERE location_record_id = :source_id');
+            $repointCalls->execute([
+                ':target_id' => $targetId,
+                ':source_id' => $sourceId,
             ]);
 
             $deleteSource = $pdo->prepare('DELETE FROM location_records WHERE id = :source_id');

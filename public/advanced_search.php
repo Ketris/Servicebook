@@ -9,7 +9,7 @@ $user = Auth::currentUser();
 
 $hasCriteria = false;
 $criteriaFields = [
-    'job_number', 'customer', 'location', 'contact', 'phone', 'email', 'po_number',
+    'job_number', 'customer', 'location', 'city', 'contact', 'phone', 'email', 'po_number',
     'reported_issue', 'internal_notes', 'status', 'assigned_tech',
     'received_from', 'received_to', 'updated_from', 'updated_to',
 ];

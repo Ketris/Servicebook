@@ -39,14 +39,16 @@ Implemented highlights:
 - Bootstrap 5
 - Vanilla JavaScript
 - Apache
+- Composer (optional; required for international phone formatting)
 
 ## Quick Start
 
 1. Configure Apache to serve this project.
-2. Open install.php in your browser.
-3. Enter database connection details and site title.
-4. Complete setup and sign in at public/login.php.
-5. Save the temporary admin password shown at install time.
+2. Run `composer install` to enable libphonenumber formatting.
+3. Open install.php in your browser.
+4. Enter database connection details and site title.
+5. Complete setup and sign in at public/login.php.
+6. Save the temporary admin password shown at install time.
 
 ## Security and Operations Notes
 

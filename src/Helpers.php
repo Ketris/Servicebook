@@ -1,4 +1,7 @@
 <?php
+if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
 require_once __DIR__ . '/AppSettings.php';
 
 if (!function_exists('escape')) {
@@ -148,18 +151,38 @@ if (!function_exists('format_saved_phone')) {
     {
         $trimmed = trim($phone);
         $digits = preg_replace('/\D+/', '', $trimmed);
-        if ($digits === null || $region !== 'US/CAN') {
+        $region = $region === 'US' || $region === 'CA' ? 'US/CAN' : $region;
+        if ($digits === null) {
             return $trimmed;
         }
 
-        if (strlen($digits) === 11 && $digits[0] === '1') {
-            $digits = substr($digits, 1);
-        }
-        if (strlen($digits) !== 10) {
-            return $trimmed;
+        if ($region === 'US/CAN') {
+            if (strlen($digits) === 11 && $digits[0] === '1') {
+                $digits = substr($digits, 1);
+            }
+            if (strlen($digits) !== 10) {
+                return $trimmed;
+            }
+
+            return sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
         }
 
-        return sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
+        if (str_starts_with($trimmed, '+')
+            && class_exists('\libphonenumber\PhoneNumberUtil')
+            && class_exists('\libphonenumber\PhoneNumberFormat')
+        ) {
+            try {
+                $util = \libphonenumber\PhoneNumberUtil::getInstance();
+                $parsed = $util->parse($trimmed, null);
+                if ($util->isValidNumber($parsed)) {
+                    return $util->format($parsed, \libphonenumber\PhoneNumberFormat::INTERNATIONAL);
+                }
+            } catch (Throwable $exception) {
+                // Preserve user input when a number cannot be parsed safely.
+            }
+        }
+
+        return $trimmed;
     }
 }
 

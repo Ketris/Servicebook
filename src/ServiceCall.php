@@ -15,6 +15,7 @@ class ServiceCall
         'received_date' => 'sc.received_date',
         'customer' => 'sc.customer',
         'location' => 'sc.location',
+        'city' => 'sc.city',
         'reported_issue' => 'sc.reported_issue',
         'po_number' => 'sc.po_number',
         'status' => 'sc.status',
@@ -66,7 +67,7 @@ class ServiceCall
 
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return self::hydrateCallRows($stmt->fetchAll());
     }
 
     public static function countAll(?string $search = null, ?string $statusFilter = 'all'): int
@@ -195,7 +196,7 @@ class ServiceCall
              LIMIT {$safeLimit}"
         );
         $stmt->execute([':technician_id' => $technicianId]);
-        return $stmt->fetchAll();
+        return self::hydrateCallRows($stmt->fetchAll());
     }
 
     public static function findClaimableOpenJobs(int $limit = 6): array
@@ -212,7 +213,7 @@ class ServiceCall
                sc.received_date ASC
              LIMIT {$safeLimit}"
         );
-        return $stmt->fetchAll();
+        return self::hydrateCallRows($stmt->fetchAll());
     }
 
     public static function findRecentActivity(int $limit = 100, int $offset = 0, array $filters = []): array
@@ -221,7 +222,8 @@ class ServiceCall
         $safeOffset = max(0, $offset);
         [$conditions, $params] = self::buildRecentActivityConditions($filters);
 
-        $query = 'SELECT h.*, sc.job_number, sc.customer, sc.location
+        $query = 'SELECT h.*, sc.job_number, sc.customer, sc.location, sc.city,
+            sc.customer_record_id, sc.location_record_id
              FROM service_call_history h
              LEFT JOIN service_calls sc ON h.service_call_id = sc.id';
         if (!empty($conditions)) {
@@ -233,7 +235,7 @@ class ServiceCall
         $pdo = Database::getConnection();
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return self::hydrateCallRows($stmt->fetchAll());
     }
 
     public static function countRecentActivity(array $filters = []): int
@@ -308,7 +310,10 @@ class ServiceCall
         );
         $stmt->execute([':id' => $id]);
         $result = $stmt->fetch();
-        return $result ?: null;
+        if (!$result) {
+            return null;
+        }
+        return self::hydrateCallRows([$result])[0];
     }
 
     public static function findRelatedCalls(int $currentId, ?string $location, int $limit = 8): array
@@ -342,7 +347,7 @@ class ServiceCall
         }
         unset($row);
 
-        return $rows;
+        return self::hydrateCallRows($rows);
     }
 
     public static function findHistory(int $serviceCallId): array
@@ -422,6 +427,7 @@ class ServiceCall
 
             $newId = (int)$pdo->lastInsertId();
             ReusableRecord::syncFromServiceCall($data);
+            ReusableRecord::linkServiceCall($newId, $data);
             self::logChange($newId, $actor, 'created', null, 'created', 'Service call created');
             return $newId;
         }
@@ -511,6 +517,7 @@ class ServiceCall
         }
 
         ReusableRecord::syncFromServiceCall($data);
+        ReusableRecord::linkServiceCall($id, $data);
 
         self::logFieldChanges($id, $oldCall, $data, $actor);
         return $id;
@@ -683,6 +690,72 @@ class ServiceCall
         }
     }
 
+    private static function hydrateCallRows(array $rows): array
+    {
+        $customerIds = [];
+        $locationIds = [];
+        foreach ($rows as $row) {
+            if ((int)($row['customer_record_id'] ?? 0) > 0) {
+                $customerIds[(int)$row['customer_record_id']] = true;
+            }
+            if ((int)($row['location_record_id'] ?? 0) > 0) {
+                $locationIds[(int)$row['location_record_id']] = true;
+            }
+        }
+
+        $pdo = Database::getConnection();
+        $customers = [];
+        if ($customerIds) {
+            $placeholders = implode(',', array_fill(0, count($customerIds), '?'));
+            $stmt = $pdo->prepare(
+                'SELECT id, customer_name, default_contact, default_phone, default_email
+                 FROM customer_records WHERE id IN (' . $placeholders . ')'
+            );
+            $stmt->execute(array_keys($customerIds));
+            foreach ($stmt->fetchAll() as $customer) {
+                $customers[(int)$customer['id']] = $customer;
+            }
+        }
+
+        $locations = [];
+        if ($locationIds) {
+            $placeholders = implode(',', array_fill(0, count($locationIds), '?'));
+            $stmt = $pdo->prepare(
+                'SELECT id, location_name, city, default_contact, default_phone, default_email
+                 FROM location_records WHERE id IN (' . $placeholders . ')'
+            );
+            $stmt->execute(array_keys($locationIds));
+            foreach ($stmt->fetchAll() as $location) {
+                $locations[(int)$location['id']] = $location;
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $customer = $customers[(int)($row['customer_record_id'] ?? 0)] ?? null;
+            $location = $locations[(int)($row['location_record_id'] ?? 0)] ?? null;
+            if ($customer) {
+                $row['customer'] = $customer['customer_name'];
+            }
+            if ($location) {
+                $row['location'] = $location['location_name'];
+                $row['city'] = $location['city'];
+            }
+
+            foreach (['contact', 'phone', 'email'] as $field) {
+                $locationValue = trim((string)($location['default_' . $field] ?? ''));
+                $customerValue = trim((string)($customer['default_' . $field] ?? ''));
+                if ($locationValue !== '') {
+                    $row[$field] = $locationValue;
+                } elseif ($customerValue !== '') {
+                    $row[$field] = $customerValue;
+                }
+            }
+        }
+        unset($row);
+
+        return $rows;
+    }
+
     private static function logFieldChanges(int $serviceCallId, ?array $oldCall, array $data, ?array $actor): void
     {
         $fields = ['job_number', 'received_date', 'customer', 'location', 'city', 'contact', 'phone', 'email', 'po_number', 'reported_issue', 'internal_notes', 'assigned_tech', 'status'];
@@ -838,6 +911,7 @@ class ServiceCall
                 COALESCE(sc.job_number, ""), " ",
                 COALESCE(sc.customer, ""), " ",
                 COALESCE(sc.location, ""), " ",
+                COALESCE(sc.city, ""), " ",
                 COALESCE(h.changed_by_name, ""), " ",
                 COALESCE(h.field_name, ""), " ",
                 COALESCE(h.old_value, ""), " ",
@@ -888,6 +962,7 @@ class ServiceCall
                 COALESCE(sc.job_number, ""), " ",
                 COALESCE(sc.customer, ""), " ",
                 COALESCE(sc.location, ""), " ",
+                COALESCE(sc.city, ""), " ",
                 COALESCE(sc.po_number, ""), " ",
                 COALESCE(sc.reported_issue, "")
             )) LIKE :term)';
@@ -924,7 +999,7 @@ class ServiceCall
 
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return self::hydrateCallRows($stmt->fetchAll());
     }
 
     public static function countAdvanced(array $filters): int
@@ -953,6 +1028,7 @@ class ServiceCall
             'job_number' => 'sc.job_number',
             'customer' => 'sc.customer',
             'location' => 'sc.location',
+            'city' => 'sc.city',
             'contact' => 'sc.contact',
             'phone' => 'sc.phone',
             'email' => 'sc.email',

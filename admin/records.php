@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/Auth.php';
+require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/ReusableRecord.php';
 require_once __DIR__ . '/../src/ServiceCall.php';
@@ -39,12 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'default_phone' => trim((string)($_POST['default_phone'] ?? '')),
                     'default_email' => trim((string)($_POST['default_email'] ?? '')),
                 ];
-                ReusableRecord::updateCustomer($customerId, [
-                    'customer_name' => $customerName,
-                    'default_contact' => $afterCustomer['default_contact'],
-                    'default_phone' => $afterCustomer['default_phone'],
-                    'default_email' => $afterCustomer['default_email'],
-                ]);
+                $pdo = Database::getConnection();
+                $pdo->beginTransaction();
+                try {
+                    ReusableRecord::updateCustomer($customerId, [
+                        'customer_name' => $customerName,
+                        'default_contact' => $afterCustomer['default_contact'],
+                        'default_phone' => $afterCustomer['default_phone'],
+                        'default_email' => $afterCustomer['default_email'],
+                    ]);
+                    $pdo->commit();
+                } catch (Throwable $exception) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $exception;
+                }
                 $success = 'Customer record updated.';
                 ServiceCall::logSystemEvent(
                     $user,
@@ -81,14 +92,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'default_phone' => trim((string)($_POST['default_phone'] ?? '')),
                     'default_email' => trim((string)($_POST['default_email'] ?? '')),
                 ];
-                ReusableRecord::updateLocation($locationId, [
-                    'location_name' => $locationName,
-                    'city' => $afterLocation['city'],
-                    'customer_record_id' => $afterLocation['customer_record_id'],
-                    'default_contact' => $afterLocation['default_contact'],
-                    'default_phone' => $afterLocation['default_phone'],
-                    'default_email' => $afterLocation['default_email'],
-                ]);
+                $pdo = Database::getConnection();
+                $pdo->beginTransaction();
+                try {
+                    ReusableRecord::updateLocation($locationId, [
+                        'location_name' => $locationName,
+                        'city' => $afterLocation['city'],
+                        'customer_record_id' => $afterLocation['customer_record_id'],
+                        'default_contact' => $afterLocation['default_contact'],
+                        'default_phone' => $afterLocation['default_phone'],
+                        'default_email' => $afterLocation['default_email'],
+                    ]);
+                    $pdo->commit();
+                } catch (Throwable $exception) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $exception;
+                }
                 $success = 'Location record updated.';
                 ServiceCall::logSystemEvent(
                     $user,

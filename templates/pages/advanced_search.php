@@ -34,6 +34,10 @@ function advField(array $filters, string $key): string
                     <input class="form-control" type="text" id="adv-location" name="location" value="<?= advField($filters, 'location') ?>">
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label" for="adv-city">City</label>
+                    <input class="form-control" type="text" id="adv-city" name="city" value="<?= advField($filters, 'city') ?>">
+                </div>
+                <div class="col-md-3">
                     <label class="form-label" for="adv-contact">Contact</label>
                     <input class="form-control" type="text" id="adv-contact" name="contact" value="<?= advField($filters, 'contact') ?>">
                 </div>
