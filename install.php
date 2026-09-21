@@ -344,7 +344,6 @@ CREATE TABLE IF NOT EXISTS location_records (
     location_key VARCHAR(255) NOT NULL UNIQUE,
     location_name VARCHAR(255) NOT NULL,
     city VARCHAR(150) DEFAULT NULL,
-    city VARCHAR(150) DEFAULT NULL,
     customer_record_id INT UNSIGNED DEFAULT NULL,
     default_contact VARCHAR(150) DEFAULT NULL,
     default_phone VARCHAR(100) DEFAULT NULL,
