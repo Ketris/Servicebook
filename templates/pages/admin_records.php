@@ -155,6 +155,12 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2">
                 <h2 class="h6 mb-0 flex-shrink-0">Location Records</h2>
+                <select class="form-select form-select-sm w-auto" id="locationCustomerFilter" aria-label="Filter locations by customer">
+                    <option value="">All customers</option>
+                    <?php foreach ($customers as $customer): ?>
+                        <option value="<?= escape((string)$customer['id']) ?>"><?= escape($customer['customer_name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <div class="position-relative filter-box flex-grow-1">
                     <input type="search" class="form-control form-control-sm" id="locationFilterInput" placeholder="Filter records" autocomplete="off">
                     <button type="button" class="filter-clear-btn" id="locationFilterClear" aria-label="Clear filter">&times;</button>
@@ -183,7 +189,7 @@
                                             . ' ' . $linkedCustomerName
                                         );
                                     ?>
-                                    <tr data-search="<?= escape($locationSearch) ?>">
+                                    <tr data-search="<?= escape($locationSearch) ?>" data-customer-id="<?= escape((string)($location['customer_record_id'] ?? '')) ?>">
                                         <td colspan="4">
                                             <form method="post" class="row g-2 align-items-end">
                                                 <?= csrf_field() ?>
@@ -268,11 +274,12 @@
 </style>
 <script>
     (function () {
-        function setupRecordFilter(inputId, clearId, bodyId, badgeId) {
+        function setupRecordFilter(inputId, clearId, bodyId, badgeId, customerFilterId) {
             var input = document.getElementById(inputId);
             var clearBtn = document.getElementById(clearId);
             var tbody = document.getElementById(bodyId);
             var badge = document.getElementById(badgeId);
+            var customerFilter = customerFilterId ? document.getElementById(customerFilterId) : null;
             if (!input || !clearBtn || !tbody || !badge) {
                 return;
             }
@@ -282,11 +289,14 @@
 
             function apply() {
                 var term = input.value.trim().toLowerCase();
+                var customerId = customerFilter ? customerFilter.value : '';
                 clearBtn.style.display = term ? 'block' : 'none';
 
                 var visible = 0;
                 rows.forEach(function (row) {
-                    var matches = !term || row.getAttribute('data-search').indexOf(term) !== -1;
+                    var matchesSearch = !term || row.getAttribute('data-search').indexOf(term) !== -1;
+                    var matchesCustomer = !customerId || row.getAttribute('data-customer-id') === customerId;
+                    var matches = matchesSearch && matchesCustomer;
                     row.style.display = matches ? '' : 'none';
                     if (matches) {
                         visible++;
@@ -297,6 +307,9 @@
             }
 
             input.addEventListener('input', apply);
+            if (customerFilter) {
+                customerFilter.addEventListener('change', apply);
+            }
             clearBtn.addEventListener('click', function () {
                 input.value = '';
                 apply();
@@ -304,7 +317,7 @@
             });
         }
 
-        setupRecordFilter('customerFilterInput', 'customerFilterClear', 'customerTableBody', 'customerShownBadge');
-        setupRecordFilter('locationFilterInput', 'locationFilterClear', 'locationTableBody', 'locationShownBadge');
+        setupRecordFilter('customerFilterInput', 'customerFilterClear', 'customerTableBody', 'customerShownBadge', null);
+        setupRecordFilter('locationFilterInput', 'locationFilterClear', 'locationTableBody', 'locationShownBadge', 'locationCustomerFilter');
     })();
 </script>
