@@ -133,7 +133,6 @@ if (!function_exists('status_badge_class')) {
     {
         return match ($status) {
             'New' => 'text-bg-secondary',
-            'Dispatched' => 'text-bg-primary',
             'In Progress' => 'text-bg-success',
             'Waiting Parts' => 'text-bg-warning',
             'On Hold' => 'text-bg-dark',
@@ -141,6 +140,26 @@ if (!function_exists('status_badge_class')) {
             'Cancelled' => 'text-bg-danger',
             default => 'text-bg-secondary',
         };
+    }
+}
+
+if (!function_exists('format_saved_phone')) {
+    function format_saved_phone(string $phone, string $region = 'US'): string
+    {
+        $trimmed = trim($phone);
+        $digits = preg_replace('/\D+/', '', $trimmed);
+        if ($digits === null || !in_array(strtoupper($region), ['US', 'CA'], true)) {
+            return $trimmed;
+        }
+
+        if (strlen($digits) === 11 && $digits[0] === '1') {
+            $digits = substr($digits, 1);
+        }
+        if (strlen($digits) !== 10) {
+            return $trimmed;
+        }
+
+        return sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
     }
 }
 

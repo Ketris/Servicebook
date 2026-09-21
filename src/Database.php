@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS location_records (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     location_key VARCHAR(255) NOT NULL UNIQUE,
     location_name VARCHAR(255) NOT NULL,
+    city VARCHAR(150) DEFAULT NULL,
     customer_record_id INT UNSIGNED DEFAULT NULL,
     default_contact VARCHAR(150) DEFAULT NULL,
     default_phone VARCHAR(100) DEFAULT NULL,
@@ -166,10 +167,22 @@ SQL
 
         $statusColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'status'")->fetchAll();
         if (!empty($statusColumns)) {
+            $pdo->exec("UPDATE service_calls SET status = 'In Progress' WHERE status = 'Dispatched'");
             $statusDefinition = $statusColumns[0]['Type'] ?? '';
-            if (stripos($statusDefinition, "'Cancelled'") === false) {
-                $pdo->exec("ALTER TABLE service_calls MODIFY status ENUM('New','Dispatched','In Progress','Waiting Parts','On Hold','Complete','Cancelled') NOT NULL DEFAULT 'New'");
+            if (stripos($statusDefinition, "'Dispatched'") !== false) {
+                $pdo->exec("ALTER TABLE service_calls MODIFY status ENUM('New','In Progress','Waiting Parts','On Hold','Complete','Cancelled') NOT NULL DEFAULT 'New'");
             }
+        }
+
+        $cityColumns = $pdo->query("SHOW COLUMNS FROM location_records LIKE 'city'")->fetchAll();
+        if (empty($cityColumns)) {
+            $pdo->exec('ALTER TABLE location_records ADD COLUMN city VARCHAR(150) DEFAULT NULL AFTER location_name');
+        }
+
+        $phoneRegion = $pdo->query("SELECT COUNT(*) FROM settings WHERE name = 'phone_region'")->fetchColumn();
+        if ((int)$phoneRegion === 0) {
+            $stmt = $pdo->prepare("INSERT INTO settings (name, value) VALUES ('phone_region', 'US')");
+            $stmt->execute();
         }
 
         $priorityColumns = $pdo->query("SHOW COLUMNS FROM service_calls LIKE 'priority'")->fetchAll();

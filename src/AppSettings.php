@@ -8,6 +8,7 @@ class AppSettings
         'site_logo_path' => '',
         'date_format' => 'Y-m-d',
         'time_format' => 'H:i',
+        'phone_region' => 'US',
         'saved_views_enabled' => '0',
         'bulk_management_enabled' => '0',
         'backup_auto_enabled' => '1',

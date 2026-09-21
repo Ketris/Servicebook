@@ -23,7 +23,6 @@ class ServiceCall
     {
         return [
             'New',
-            'Dispatched',
             'In Progress',
             'Waiting Parts',
             'On Hold',
@@ -186,10 +185,9 @@ class ServiceCall
              ORDER BY
                CASE sc.status
                  WHEN 'In Progress' THEN 1
-                 WHEN 'Dispatched' THEN 2
-                 WHEN 'Waiting Parts' THEN 3
-                 WHEN 'On Hold' THEN 4
-                 ELSE 5
+                 WHEN 'Waiting Parts' THEN 2
+                 WHEN 'On Hold' THEN 3
+                 ELSE 4
                END,
                sc.received_date ASC
              LIMIT {$safeLimit}"
@@ -589,7 +587,11 @@ class ServiceCall
 
         $data = self::buildTechnicianSaveData($call);
         $data['assigned_tech'] = $technicianId;
-        $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), 'claimed this job', $actor);
+        $data['status'] = 'In Progress';
+        $claimNote = ($actor['role'] ?? '') === 'Administrator'
+            ? 'assigned this job to ' . (self::resolveTechnicianName($technicianId) ?? (string)$technicianId)
+            : 'claimed this job';
+        $data['internal_notes'] = self::appendTechnicianNote((string)($call['internal_notes'] ?? ''), $claimNote, $actor);
 
         self::save($data, $serviceCallId, $actor, $expectedUpdatedAt ?? (string)($call['updated_at'] ?? ''));
     }
