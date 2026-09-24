@@ -50,14 +50,14 @@ $initialLocationNames = $selectedCustomerKey !== ''
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="location">Location</label>
+                    <label class="form-label" for="location">Address</label>
                     <input id="location" name="location" class="form-control" type="text" value="<?= escape($values['location']) ?>" required maxlength="255" list="location-options" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['location'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['location']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="city">Location City</label>
+                    <label class="form-label" for="city">City</label>
                     <input id="city" name="city" class="form-control" type="text" value="<?= escape($values['city']) ?>" maxlength="150" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['city'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['city']) ?></div>
@@ -94,28 +94,27 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 <div class="col-md-4">
                     <label class="form-label" for="contact">Location Contact</label>
                     <input id="contact" name="contact" class="form-control" type="text" value="<?= escape($values['contact']) ?>" maxlength="150" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
-                    <div class="form-text">Contact for this location. Location defaults take priority over customer defaults.</div>
                     <?php if (isset($errors['contact'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['contact']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="phone">Location Phone</label>
-                    <input id="phone" name="phone" class="form-control" type="text" value="<?= escape($values['phone']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <input id="phone" name="phone" class="form-control" type="text" autocomplete="off" value="<?= escape($values['phone']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['phone'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['phone']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="email">Location Email</label>
-                    <input id="email" name="email" class="form-control" type="email" value="<?= escape($values['email']) ?>" maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <input id="email" name="email" class="form-control" type="email" autocomplete="off" value="<?= escape($values['email']) ?>" maxlength="255" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['email'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['email']) ?></div>
                     <?php endif; ?>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="po_number">Customer PO Number</label>
-                    <input id="po_number" name="po_number" class="form-control" type="text" value="<?= escape($values['po_number']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
+                    <input id="po_number" name="po_number" class="form-control" type="text" autocomplete="off" value="<?= escape($values['po_number']) ?>" maxlength="100" <?= $isTechnician && !$canEditDetails ? 'disabled' : '' ?>>
                     <?php if (isset($errors['po_number'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['po_number']) ?></div>
                     <?php endif; ?>
