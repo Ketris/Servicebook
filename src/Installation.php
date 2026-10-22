@@ -16,6 +16,10 @@ class Installation
 
     public static function isInstallationRequired(): bool
     {
+        if (!is_file(__DIR__ . '/config.php')) {
+            return true;
+        }
+
         try {
             Database::getConnection();
             return false;

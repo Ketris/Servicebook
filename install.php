@@ -13,7 +13,10 @@ const INSTALLER_SESSION_KEY = 'installer_setup_data';
 const INSTALLER_REQUIRED_TABLES = ['users', 'settings', 'service_calls'];
 
 $configPath = __DIR__ . '/src/config.php';
-$existingConfig = require $configPath;
+$existingConfig = is_file($configPath) ? require $configPath : [];
+if (!is_array($existingConfig)) {
+    $existingConfig = [];
+}
 $formData = [
     'db_host' => trim((string)($existingConfig['db_host'] ?? '127.0.0.1')),
     'db_name' => trim((string)($existingConfig['db_name'] ?? 'servicebook')),
