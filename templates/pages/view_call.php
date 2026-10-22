@@ -37,7 +37,7 @@
                     <div class="col-md-4"><div class="small text-muted">Received</div><div><?= escape(format_datetime($call['received_date'])) ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Status</div><div><span class="badge <?= status_badge_class((string)$call['status']) ?>"><?= escape($call['status']) ?></span></div></div>
                     <div class="col-md-4"><div class="small text-muted">Assigned Technician</div><div><?= escape((string)($call['assigned_tech_name'] ?? 'Unassigned')) ?></div></div>
-                    <div class="col-md-4"><div class="small text-muted">Customer Contact</div><div><?= escape($call['contact'] ?: '—') ?></div></div>
+                    <div class="col-md-4"><div class="small text-muted">Location Contact</div><div><?= escape($call['contact'] ?: '—') ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Phone</div><div><?= escape($call['phone'] ?: '—') ?></div></div>
                     <div class="col-md-4"><div class="small text-muted">Email</div><div><?= escape($call['email'] ?: '—') ?></div></div>
                     <div class="col-12"><div class="small text-muted">Customer PO Number</div><div><?= escape($call['po_number'] ?: '—') ?></div></div>

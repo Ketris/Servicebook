@@ -78,6 +78,7 @@ $initialLocationNames = $selectedCustomerKey !== ''
                 <div class="col-md-4">
                     <label class="form-label" for="contact">Location Contact</label>
                     <input id="contact" name="contact" class="form-control" type="text" value="<?= escape($values['contact']) ?>" maxlength="150">
+                    <div class="form-text">Location-specific details; customer defaults may prefill these fields.</div>
                     <?php if (isset($errors['contact'])): ?>
                         <div class="invalid-feedback d-block"><?= escape($errors['contact']) ?></div>
                     <?php endif; ?>

@@ -124,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]),
                     $formatRecordSummary($afterLocation, [
                         'location_name' => 'Name',
+                        'city' => 'City',
                         'customer_record_id' => 'Customer ID',
                         'default_contact' => 'Contact',
                         'default_phone' => 'Phone',

@@ -80,31 +80,31 @@
                                     ?>
                                     <tr data-search="<?= escape($customerSearch) ?>">
                                         <td colspan="4">
-                                            <form method="post" class="row g-2 align-items-end">
+                                            <form method="post" class="row g-3 align-items-end p-3">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="action" value="update_customer">
                                                 <input type="hidden" name="customer_id" value="<?= escape((string)$customer['id']) ?>">
-                                                <div class="col-md-4">
-                                                    <label class="form-label small">Name</label>
-                                                    <input class="form-control form-control-sm" name="customer_name" maxlength="255" value="<?= escape($customer['customer_name']) ?>" required>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Customer Name</label>
+                                                    <input class="form-control" name="customer_name" maxlength="255" value="<?= escape($customer['customer_name']) ?>" required>
                                                 </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Contact</label>
-                                                    <input class="form-control form-control-sm" name="default_contact" maxlength="150" value="<?= escape((string)($customer['default_contact'] ?? '')) ?>">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Default Contact</label>
+                                                    <input class="form-control" name="default_contact" maxlength="150" value="<?= escape((string)($customer['default_contact'] ?? '')) ?>">
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Phone</label>
-                                                    <input class="form-control form-control-sm" name="default_phone" maxlength="100" value="<?= escape((string)($customer['default_phone'] ?? '')) ?>">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Default Phone</label>
+                                                    <input class="form-control" name="default_phone" maxlength="100" value="<?= escape((string)($customer['default_phone'] ?? '')) ?>">
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Email</label>
-                                                    <input class="form-control form-control-sm" name="default_email" maxlength="255" value="<?= escape((string)($customer['default_email'] ?? '')) ?>">
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Default Email</label>
+                                                    <input class="form-control" name="default_email" maxlength="255" value="<?= escape((string)($customer['default_email'] ?? '')) ?>">
                                                 </div>
                                                 <div class="col-md-1 d-grid">
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                                                    <button type="submit" class="btn btn-outline-primary">Save</button>
                                                 </div>
                                                 <div class="col-12">
-                                                    <div class="small text-muted">Linked locations: <?= escape((string)($customer['location_count'] ?? 0)) ?></div>
+                                                    <div class="small text-muted"><?= escape((string)($customer['location_count'] ?? 0)) ?> linked locations · Contact details are customer-wide defaults.</div>
                                                 </div>
                                             </form>
                                         </td>
@@ -113,6 +113,13 @@
                             <?php endif; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-2">
+                <span class="small text-muted" id="customerPaginationInfo" aria-live="polite"></span>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Customer record pages">
+                    <button type="button" class="btn btn-outline-secondary" id="customerPreviousPage">Previous</button>
+                    <button type="button" class="btn btn-outline-secondary" id="customerNextPage">Next</button>
                 </div>
             </div>
         </div>
@@ -191,16 +198,16 @@
                                     ?>
                                     <tr data-search="<?= escape($locationSearch) ?>" data-customer-id="<?= escape((string)($location['customer_record_id'] ?? '')) ?>">
                                         <td colspan="4">
-                                            <form method="post" class="row g-2 align-items-end">
+                                            <form method="post" class="row g-3 align-items-end p-3">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="action" value="update_location">
                                                 <input type="hidden" name="location_id" value="<?= escape((string)$location['id']) ?>">
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Name</label>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Location Name</label>
                                                     <input class="form-control" name="location_name" maxlength="255" value="<?= escape($location['location_name']) ?>" required>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Customer Link</label>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Customer Link</label>
                                                     <select class="form-select" name="customer_record_id">
                                                         <option value="">No linked customer</option>
                                                         <?php foreach ($customers as $customer): ?>
@@ -208,20 +215,20 @@
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">City</label>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">City</label>
                                                     <input class="form-control" name="city" maxlength="150" value="<?= escape((string)($location['city'] ?? '')) ?>">
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Contact</label>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Location Contact</label>
                                                     <input class="form-control" name="default_contact" maxlength="150" value="<?= escape((string)($location['default_contact'] ?? '')) ?>">
                                                 </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Phone</label>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Location Phone</label>
                                                     <input class="form-control" name="default_phone" maxlength="100" value="<?= escape((string)($location['default_phone'] ?? '')) ?>">
                                                 </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label small">Email</label>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Location Email</label>
                                                     <input class="form-control" name="default_email" maxlength="255" value="<?= escape((string)($location['default_email'] ?? '')) ?>">
                                                 </div>
                                                 <div class="col-md-1 d-grid">
@@ -234,6 +241,13 @@
                             <?php endif; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center gap-2">
+                <span class="small text-muted" id="locationPaginationInfo" aria-live="polite"></span>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Location record pages">
+                    <button type="button" class="btn btn-outline-secondary" id="locationPreviousPage">Previous</button>
+                    <button type="button" class="btn btn-outline-secondary" id="locationNextPage">Next</button>
                 </div>
             </div>
         </div>
@@ -251,7 +265,17 @@
 
     #customerTableBody tr > td,
     #locationTableBody tr > td {
-        padding: 1rem;
+        padding: 0.5rem;
+    }
+
+    #customerTableBody tr + tr,
+    #locationTableBody tr + tr {
+        border-top: 0.5rem solid var(--bs-body-bg);
+    }
+
+    #locationTableBody .form-control,
+    #locationTableBody .form-select {
+        min-width: 9rem;
     }
 
     .filter-clear-btn {
@@ -274,50 +298,89 @@
 </style>
 <script>
     (function () {
-        function setupRecordFilter(inputId, clearId, bodyId, badgeId, customerFilterId) {
+        function setupRecordFilter(inputId, clearId, bodyId, badgeId, customerFilterId, paginationPrefix) {
             var input = document.getElementById(inputId);
             var clearBtn = document.getElementById(clearId);
             var tbody = document.getElementById(bodyId);
             var badge = document.getElementById(badgeId);
             var customerFilter = customerFilterId ? document.getElementById(customerFilterId) : null;
-            if (!input || !clearBtn || !tbody || !badge) {
+            var previousButton = document.getElementById(paginationPrefix + 'PreviousPage');
+            var nextButton = document.getElementById(paginationPrefix + 'NextPage');
+            var paginationInfo = document.getElementById(paginationPrefix + 'PaginationInfo');
+            if (!input || !clearBtn || !tbody || !badge || !previousButton || !nextButton || !paginationInfo) {
                 return;
             }
 
             var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-search]'));
             var total = rows.length;
+            var pageSize = 15;
+            var currentPage = 0;
 
             function apply() {
                 var term = input.value.trim().toLowerCase();
                 var customerId = customerFilter ? customerFilter.value : '';
                 clearBtn.style.display = term ? 'block' : 'none';
 
-                var visible = 0;
+                var matchingRows = [];
                 rows.forEach(function (row) {
                     var matchesSearch = !term || row.getAttribute('data-search').indexOf(term) !== -1;
                     var matchesCustomer = !customerId || row.getAttribute('data-customer-id') === customerId;
-                    var matches = matchesSearch && matchesCustomer;
-                    row.style.display = matches ? '' : 'none';
-                    if (matches) {
-                        visible++;
+                    if (matchesSearch && matchesCustomer) {
+                        matchingRows.push(row);
                     }
                 });
 
-                badge.textContent = term ? (visible + ' of ' + total + ' shown') : (total + ' shown');
+                var pageCount = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+                currentPage = Math.min(currentPage, pageCount - 1);
+                var firstVisible = currentPage * pageSize;
+                var lastVisible = Math.min(firstVisible + pageSize, matchingRows.length);
+
+                rows.forEach(function (row) {
+                    row.style.display = 'none';
+                });
+                matchingRows.slice(firstVisible, lastVisible).forEach(function (row) {
+                    row.style.display = '';
+                });
+
+                badge.textContent = matchingRows.length === total
+                    ? (total + ' records')
+                    : (matchingRows.length + ' of ' + total + ' records');
+                paginationInfo.textContent = matchingRows.length === 0
+                    ? 'No matching records'
+                    : ('Showing ' + (firstVisible + 1) + '–' + lastVisible + ' of ' + matchingRows.length);
+                previousButton.disabled = currentPage === 0;
+                nextButton.disabled = currentPage >= pageCount - 1;
             }
 
-            input.addEventListener('input', apply);
+            input.addEventListener('input', function () {
+                currentPage = 0;
+                apply();
+            });
             if (customerFilter) {
-                customerFilter.addEventListener('change', apply);
+                customerFilter.addEventListener('change', function () {
+                    currentPage = 0;
+                    apply();
+                });
             }
             clearBtn.addEventListener('click', function () {
                 input.value = '';
+                currentPage = 0;
                 apply();
                 input.focus();
             });
+            previousButton.addEventListener('click', function () {
+                currentPage--;
+                apply();
+            });
+            nextButton.addEventListener('click', function () {
+                currentPage++;
+                apply();
+            });
+
+            apply();
         }
 
-        setupRecordFilter('customerFilterInput', 'customerFilterClear', 'customerTableBody', 'customerShownBadge', null);
-        setupRecordFilter('locationFilterInput', 'locationFilterClear', 'locationTableBody', 'locationShownBadge', 'locationCustomerFilter');
+        setupRecordFilter('customerFilterInput', 'customerFilterClear', 'customerTableBody', 'customerShownBadge', null, 'customer');
+        setupRecordFilter('locationFilterInput', 'locationFilterClear', 'locationTableBody', 'locationShownBadge', 'locationCustomerFilter', 'location');
     })();
 </script>
