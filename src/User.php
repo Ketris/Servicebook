@@ -105,6 +105,24 @@ class User
         return $stmt->rowCount() > 0;
     }
 
+    public static function changeOwnPassword(int $id, string $currentPassword, string $newPassword): bool
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE id = :id AND active = 1 LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $hash = $stmt->fetchColumn();
+        if (!is_string($hash) || !password_verify($currentPassword, $hash)) {
+            return false;
+        }
+
+        $update = $pdo->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
+        $update->execute([
+            ':password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+            ':id' => $id,
+        ]);
+        return true;
+    }
+
     public static function resetPassword(int $id): ?string
     {
         $user = self::findById($id);

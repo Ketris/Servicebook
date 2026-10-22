@@ -43,6 +43,7 @@ $navbarTheme = in_array($app_theme ?? '', ['light', 'dark'], true) ? $app_theme 
                     <i class="bi <?= $navbarTheme === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars-fill' ?>"></i>
                 </button>
                 <span class="me-3 text-muted small">Signed in as <?= escape($user['display_name'] ?? '') ?></span>
+                <a class="btn btn-outline-secondary btn-sm me-2" href="<?= url('public/settings.php') ?>"><i class="bi bi-gear-fill"></i> Settings</a>
                 <a class="btn btn-outline-secondary btn-sm" href="<?= url('public/logout.php') ?>">Logout</a>
             </div>
         </div>
